@@ -4,7 +4,7 @@ import glob
 import shutil
 from tqdm import tqdm
 
-subset = [15, 16, 19, 21, 23, 26, 30, 31, 37, 52, 62, 64]
+subset = [15, 16, 21, 23, 26, 30, 31, 37, 52, 62, 64]
 
 map_what = {"renders": "*/*.avi", "meshs": "*.npz", "projections": "*/*.npz"}
 
