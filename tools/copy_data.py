@@ -16,6 +16,13 @@ def parse_args():
     parser.add_argument('--only_few', action='store_true', default=False, help="copy only few actions")
     return parser.parse_args()
 
+def get_action_from_path(filepath, action_position=-1):
+    mnoext, _ = os.path.splitext(m)
+    words = os.path.basename(mnoext).split('_')
+    action_str = words[action_position]
+    action_id = int(action_str[1:]) - 1
+    return action_id
+
 if __name__ == '__main__':
 
     args = parse_args()
@@ -28,10 +35,15 @@ if __name__ == '__main__':
         
         for m in tqdm(matches):
             if args.only_few:
-                mnoext, _ = os.path.splitext(m)
-                words = os.path.basename(mnoext).split('_')
-                action_str = words[-1]
-                action_id = int(action_str[1:]) - 1
+                action_id = None
+                if suf == "*/*.avi":
+                    action_id = get_action_from_path(m, -1)
+                elif suf == "*/*.npz":
+                    action_id = get_action_from_path(m, -2)
+                elif suf == "*.npz":
+                    print("not implemented yet!")
+                    continue
+
                 if action_id not in subset:
                     continue
 
