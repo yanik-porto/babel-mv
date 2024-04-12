@@ -26,8 +26,8 @@ def compute_babel_split_statistics(babel_split):
     return nseqbyaction
 
 def compute_babel_statistics(babel_path):
-    babel_train_path = os.path.join(args.babel_path, "train.json")
-    babel_val_path = os.path.join(args.babel_path, "val.json")
+    babel_train_path = os.path.join(babel_path, "train.json")
+    babel_val_path = os.path.join(babel_path, "val.json")
     with open(babel_train_path) as file: babel_train = json.load(file)
     with open(babel_val_path) as file: babel_val = json.load(file)
     nseqbyaction_train = compute_babel_split_statistics(babel_train)
@@ -55,6 +55,7 @@ if __name__ == "__main__":
 
     labels = [x.strip() for x in open("tools/babel.txt").readlines()]
 
+    babel_stats = None
     if args.babel_path is not None:
         babel_stats = compute_babel_statistics(args.babel_path)
 
