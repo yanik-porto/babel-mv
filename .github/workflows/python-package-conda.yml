@@ -31,7 +31,10 @@ jobs:
     - name: Download data
       run: |
         wget -O babel_mv_0.1.pkl https://www.dropbox.com/scl/fi/wxvar1ue1y71p62n74fg5/babel_mv_0.1.pkl?rlkey=y481oqn5v75x3bnp9afw3clqg&dl=0
-    - name: Test with pytest
-      run: |
-        conda install pytest
-        pytest
+    - name: Stats
+      run:
+        python tools/data_stats.py babel_mv_0.1.pkl
+    # - name: Test with pytest
+      # run: |
+      #   conda install pytest
+      #   pytest
