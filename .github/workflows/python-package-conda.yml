@@ -31,7 +31,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Download data
       run: |
-        wget -O babel_mv_0.1.pkl https://www.dropbox.com/scl/fi/uhr07xylxug1mj45t8slo/babel_mv_0.1_val_kick.pkl?rlkey=qfsw241d8jc651dbn11a1pk93&dl=0
+        wget -O babel_mv_0.1.pkl https://www.dropbox.com/scl/fi/wkhr2iap7kpa39qvwek31/babel_mv_0.1_30p_train_100p_val.pkl?rlkey=bp3ek9zteas8lyus61uu71uvc&dl=0
         wget https://babel.is.tue.mpg.de/media/upload/data/babel_v1-0_release.zip
         unzip babel_v1-0_release.zip
     - name: Stats
