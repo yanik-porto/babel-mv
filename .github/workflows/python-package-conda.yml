@@ -36,7 +36,7 @@ jobs:
         unzip babel_v1-0_release.zip
     - name: Stats
       run:
-        python tools/data_stats.py babel_mv_0.1.pkl --babel_path babel_v1-0_release
+        python tools/data_stats.py babel_mv_0.1.pkl --babel_path babel_v1.0_release
     # - name: Test with pytest
       # run: |
       #   conda install pytest
