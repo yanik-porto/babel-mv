@@ -42,6 +42,12 @@ jobs:
       with:
         name: code-coverage-report
         path: coverage.txt
+    - name:
+      uses: actions/download-artifact@v4
+      with:
+        name: code-coverage-report
+    - name: Display structure of downloaded files
+      run: ls -R
     # - name: Test with pytest
       # run: |
       #   conda install pytest
