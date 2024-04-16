@@ -42,11 +42,6 @@ jobs:
       with:
         name: code-coverage-report
         path: coverage.txt
-        target: code-coverage-report
-    - name:
-      uses: actions/download-artifact@v4
-      with:
-        name: code-coverage-report
     - name: Display downloaded files
       run: cat coverage.txt
     # - name: Test with pytest
