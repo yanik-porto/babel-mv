@@ -1,7 +1,7 @@
 import argparse
 import os
 import numpy as np
-from smpl import SMPLX
+from smpl import SMPLX, SMPL
 import torch
 from tools.renderer import Renderer
 import cv2
@@ -10,23 +10,30 @@ import time
 def parse_args():
     parser = argparse.ArgumentParser(description="Create babel-mv dataset")
     parser.add_argument("meshes_path", type=str, help="Path to the folder containing mesh files")
+    parser.add_argument('--convention', type=str, choices=['LSP', 'COCO'], default='LSP', help="Skeleton convention to use")
     return parser.parse_args()
 
 if __name__ == "__main__":
     args = parse_args()
 
-    smplx = SMPLX('/home/yanik/Documents/models/smplx/models_smplx_v1_1/models/smplx/SMPLX_NEUTRAL.pkl',
-                    batch_size=1,
-                    create_transl=False,
-                    ext='pkl',
-                    use_pca = False,
-                    num_expression_coeffs=16,
-                    num_betas=16).cuda()
-                    # create_expression=False).cuda()
+    bm = None
+    if args.convention == 'LSP':
+        bm = SMPLX('/home/yanik/Documents/models/smplx/models_smplx_v1_1/models/smplx/SMPLX_NEUTRAL.pkl',
+                        batch_size=1,
+                        create_transl=False,
+                        ext='pkl',
+                        use_pca = False,
+                        num_expression_coeffs=16,
+                        num_betas=16).cuda()
+
+    elif args.convention == 'COCO':
+        bm = SMPL('/home/yanik/Documents/models/smpl/SMPL_NEUTRAL.pkl',
+                        batch_size=1,
+                        create_transl=False).cuda()
 
     focal_length = 5000.
 
-    renderer = Renderer(focal_length=focal_length, viewport_width=640, viewport_height=480, faces=smplx.faces)
+    renderer = Renderer(focal_length=focal_length, viewport_width=640, viewport_height=480, faces=bm.faces)
 
     for root, _, files in os.walk(args.meshes_path):
         for f in files:
@@ -46,27 +53,40 @@ if __name__ == "__main__":
                 # batch= [0:150]
                 batch = range(poses.shape[0])
 
+                torch.no_grad()
+
                 for ib in batch:
-                    global_orient = poses[ib:ib+1, :3]
-                    body_pose = poses[ib:ib+1, 3:3+21*3]
-                    jaw_pose = poses[ib:ib+1, 22*3:23*3]
-                    leye_pose = poses[ib:ib+1, 23*3:24*3]
-                    reye_pose = poses[ib:ib+1, 24*3:25*3]
-                    left_hand_pose = poses[ib:ib+1, 25*3:25*3 + 15*3]
-                    right_hand_pose = poses[ib:ib+1, 25*3 + 15*3:25*3 + 15*3 + 15*3]
-
-                    # global_orient = global_orient[:, [0, 2, 1]]
-
-                    torch.no_grad()
                     st = time.time()
 
-                    joints, verts = smplx(betas=betas,  global_orient=global_orient.cuda(),
-                                                        body_pose=body_pose.cuda(),
-                                                        jaw_pose=jaw_pose.cuda(),
-                                                        leye_pose=leye_pose.cuda(),
-                                                        reye_pose=reye_pose.cuda(),
-                                                        left_hand_pose=left_hand_pose.cuda(),
-                                                        right_hand_pose=right_hand_pose.cuda())
+                    joints, verts = None, None
+                    if args.convention == 'LSP':
+                        global_orient = poses[ib:ib+1, :3]
+                        body_pose = poses[ib:ib+1, 3:3+21*3]
+                        jaw_pose = poses[ib:ib+1, 22*3:23*3]
+                        leye_pose = poses[ib:ib+1, 23*3:24*3]
+                        reye_pose = poses[ib:ib+1, 24*3:25*3]
+                        left_hand_pose = poses[ib:ib+1, 25*3:25*3 + 15*3]
+                        right_hand_pose = poses[ib:ib+1, 25*3 + 15*3:25*3 + 15*3 + 15*3]
+                        joints, verts = bm(betas=betas,  global_orient=global_orient.cuda(),
+                                                            body_pose=body_pose.cuda(),
+                                                            jaw_pose=jaw_pose.cuda(),
+                                                            leye_pose=leye_pose.cuda(),
+                                                            reye_pose=reye_pose.cuda(),
+                                                            left_hand_pose=left_hand_pose.cuda(),
+                                                            right_hand_pose=right_hand_pose.cuda())
+                    elif args.convention == 'COCO':
+                        global_orient = poses[ib:ib+1, :3]
+                        body_pose = poses[ib:ib+1, 3:3+21*3].reshape(1, 21, 3)
+                        left_hand_pose = poses[ib:ib+1, 25*3:25*3 + 3].reshape(1, 1, 3)
+                        right_hand_pose = poses[ib:ib+1, 25*3 + 15*3:25*3 + 15*3 + 3].reshape(1, 1, 3)
+                        body_pose = torch.cat((body_pose, left_hand_pose), axis=1)
+                        body_pose = torch.cat((body_pose, right_hand_pose), axis=1)
+                        body_pose = body_pose.reshape(1, 23*3)
+                        joints, verts = bm(betas=betas[:, :10],  global_orient=global_orient.cuda(),
+                                                            body_pose=body_pose.cuda())
+                    else:
+                        exit()
+                    
                     
                     print("time estimation : {est_time:.3f}\t".format(est_time=time.time() - st))
 
@@ -78,9 +98,6 @@ if __name__ == "__main__":
                     # camera_translation = [0.1291,     0.19265,      39.518]
 
                     img_rendered = renderer(verts[0].detach().cpu().numpy(), camera_translation, joints=joints[0].detach().cpu().numpy())
-                    print("img_rendered: ", img_rendered.shape)
 
                     cv2.imshow("smplx", img_rendered)
                     cv2.waitKey(10)
-
-                exit()
