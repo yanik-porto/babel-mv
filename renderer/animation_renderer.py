@@ -1,7 +1,9 @@
-from .map_to_babel import few_babel
+from renderer.map_to_babel import few_babel
 from abc import ABC, abstractmethod
 import json
 import os
+from os.path import join as ospj
+from os.path import dirname as ospd
 
 class AnimationRenderer(ABC):
     def __init__(self, skip_existing = False, strict_label = False, n_classes = 120, only_some_actions = False):
@@ -11,7 +13,7 @@ class AnimationRenderer(ABC):
         self.only_some_actions = only_some_actions
 
         self.labels_2_idx = {}
-        with open("renderer/action_label_2_idx.json") as infile:
+        with open(ospj(ospd(os.path.abspath(__file__)), "action_label_2_idx.json")) as infile:
             self.labels_2_idx = json.load(infile)
 
         self.missing_labels = []
@@ -57,8 +59,14 @@ class AnimationRenderer(ABC):
     @abstractmethod
     def render_animation_in_camera(self, camera_name, animation_filename, animation_folder):
         pass
+    
+    @abstractmethod
+    def clear(self):
+        pass
 
     def render_animation(self, animation_folder, animation_filename, cams):
+        self.clear()
+
         classidx = self.get_classidx_from_filename(os.path.splitext(animation_filename)[0])
         if classidx >= self.n_classes:
             print("Skipped animation rendering because class index is out of range : {}".format(classidx))
@@ -70,5 +78,4 @@ class AnimationRenderer(ABC):
         for cam in cams:
             self.render_animation_in_camera(cam, animation_filename, animation_folder)
 
-        self.betas = None
-        self.poses = None
+        self.clear()

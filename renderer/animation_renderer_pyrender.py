@@ -9,8 +9,8 @@ import time
 from tools.utils import AverageMeter
 
 class AnimationRendererPyrender(AnimationRenderer):
-    def __init__(self, convention='LSP'):
-        super(AnimationRendererPyrender, self).__init__()
+    def __init__(self, convention='LSP', skip_existing = False, strict_label = False, n_classes = 120, only_some_actions = False):
+        super(AnimationRendererPyrender, self).__init__(skip_existing, strict_label, n_classes, only_some_actions)
         assert(convention in ['LSP', 'COCO'])
         self.convention = convention
 
@@ -44,6 +44,10 @@ class AnimationRendererPyrender(AnimationRenderer):
             self.betas = self.betas.unsqueeze(0)
 
         self.animation_loaded = animation_path
+
+    def clear(self):
+        self.betas = None
+        self.poses = None
 
     def render_animation_in_camera(self, camera_name, animation_filename, animation_folder):        
         an_f_noext, _ = os.path.splitext(animation_filename)
