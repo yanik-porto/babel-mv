@@ -101,9 +101,10 @@ class AnimationRendererPyrender(AnimationRenderer):
                 
             render_time.update(time.time() - st)
 
-            camera_translation = [0.,     0.,      40.]
 
-            img_rendered = self.renderer(verts[0].detach().cpu().numpy(), camera_translation)#, joints=joints[0].detach().cpu().numpy())
+            camera_translation = [-2.,     2.,      10.]
+            camera_angles = [2, 5, 90]
+            img_rendered = self.renderer(verts[0].detach().cpu().numpy(), camera_translation, camera_angles, joints=joints[0].detach().cpu().numpy())
             img_rendered *= 255 # or any coefficient
             img_rendered = img_rendered.astype(np.uint8)
             video.write(img_rendered[:, :, :3])
