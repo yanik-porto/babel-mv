@@ -40,6 +40,7 @@ class AnimationRendererPyrender(AnimationRenderer):
         data = dict(np.load(animation_path))
         self.betas = torch.from_numpy(data['betas']).float().cuda()
         self.poses = torch.from_numpy(data['poses']).float()#.cuda()
+        self.trans = torch.from_numpy(data['trans']).float()#.cuda()
         if len(self.betas.shape) == 1:
             self.betas = self.betas.unsqueeze(0)
 
@@ -85,7 +86,8 @@ class AnimationRendererPyrender(AnimationRenderer):
                                                     leye_pose=leye_pose.cuda(),
                                                     reye_pose=reye_pose.cuda(),
                                                     left_hand_pose=left_hand_pose.cuda(),
-                                                    right_hand_pose=right_hand_pose.cuda())
+                                                    right_hand_pose=right_hand_pose.cuda(),
+                                                    transl=self.trans[ib:ib+1].cuda())
             elif self.convention == 'COCO':
                 global_orient = self.poses[ib:ib+1, :3]
                 body_pose = self.poses[ib:ib+1, 3:3+21*3].reshape(1, 21, 3)
