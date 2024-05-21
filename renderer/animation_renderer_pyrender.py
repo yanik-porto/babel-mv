@@ -29,9 +29,9 @@ class AnimationRendererPyrender(AnimationRenderer):
                             batch_size=1,
                             create_transl=False).cuda()
 
-        focal_length = 5000.
+        focal_length_mm = 50
 
-        self.renderer = Renderer(focal_length=focal_length, viewport_width=640, viewport_height=480, faces=self.bm.faces)
+        self.renderer = Renderer(focal_length_mm=focal_length_mm, viewport_width=640, viewport_height=480, faces=self.bm.faces)
 
     def load_animation(self, animation_path):
         if animation_path == self.animation_loaded:

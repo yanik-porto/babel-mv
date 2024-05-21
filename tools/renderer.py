@@ -11,10 +11,13 @@ class Renderer:
     Renderer used for visualizing the SMPL model
     Code adapted from https://github.com/vchoutas/smplify-x
     """
-    def __init__(self, focal_length=5000, viewport_width=224, viewport_height=224, faces=None):
+    def __init__(self, focal_length_mm=50, viewport_width=224, viewport_height=224, faces=None):
         self.renderer = pyrender.OffscreenRenderer(viewport_width=viewport_width,
                                        viewport_height=viewport_height,
                                        point_size=1.0)
+        sensor_width = 36
+        self.focal_length_mm = focal_length_mm
+        focal_length = focal_length_mm / sensor_width * viewport_width
         self.focal_length = focal_length
         self.camera_center = [viewport_width // 2, viewport_height // 2]
         # self.camera_center = [img_res // 2, img_res // 2]
