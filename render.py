@@ -22,4 +22,4 @@ if __name__ == "__main__":
     for root, _, files in os.walk(args.meshes_path):
         for f in files:
             if f.endswith('.npz'):
-                renderer.render_animation(root, f, ["Camera1"])
+                renderer.render_animation(root, f, ["Camera1", "Camera2", "Camera3"])

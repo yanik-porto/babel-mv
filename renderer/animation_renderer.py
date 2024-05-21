@@ -20,6 +20,11 @@ class AnimationRenderer(ABC):
 
         self.animation_loaded = ""
         
+        self.cameras = {}
+        self.cameras["Camera1"] = ((7.35889, -6.92579, 4.95831), (63.5593, 0, 46.6919))
+        self.cameras["Camera2"] = ((7.58162, 7.0136, 4.95831), (63.5593, 0, 130.047))
+        self.cameras["Camera3"] = ((-6.40549, 7.0136, 4.95831), (63.5593, 0, 223.362))
+
     def get_classidx_from_filename(self, filename):
         splits = filename.split("_")
         assert len(splits) == 3, str(len(splits))

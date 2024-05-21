@@ -31,7 +31,7 @@ class AnimationRendererPyrender(AnimationRenderer):
 
         focal_length_mm = 50
 
-        self.renderer = Renderer(focal_length_mm=focal_length_mm, viewport_width=640, viewport_height=480, faces=self.bm.faces)
+        self.renderer = Renderer(focal_length_mm=focal_length_mm, viewport_width=1920, viewport_height=1080, faces=self.bm.faces)
 
     def load_animation(self, animation_path):
         if animation_path == self.animation_loaded:
@@ -62,7 +62,7 @@ class AnimationRendererPyrender(AnimationRenderer):
         self.load_animation(os.path.join(animation_folder, animation_filename))
         
         out_file = os.path.join(out_folder, stdname + '.avi')
-        video=cv2.VideoWriter(out_file, cv2.VideoWriter_fourcc(*'DIVX'), 30, (640,480))
+        video=cv2.VideoWriter(out_file, cv2.VideoWriter_fourcc(*'DIVX'), 30, (1920,1080))
 
         render_time = AverageMeter()
 
@@ -104,6 +104,9 @@ class AnimationRendererPyrender(AnimationRenderer):
 
             camera_translation = [-2.,     2.,      10.]
             camera_angles = [2, 5, 90]
+            assert(camera_name in self.cameras)
+            camera_translation = self.cameras[camera_name][0]
+            camera_angles = self.cameras[camera_name][1]
             img_rendered = self.renderer(verts[0].detach().cpu().numpy(), camera_translation, camera_angles, joints=joints[0].detach().cpu().numpy())
             img_rendered *= 255 # or any coefficient
             img_rendered = img_rendered.astype(np.uint8)
