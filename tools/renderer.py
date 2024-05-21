@@ -20,13 +20,13 @@ class Renderer:
         # self.camera_center = [img_res // 2, img_res // 2]
         self.faces = faces
 
-    def __call__(self, vertices, camera_translation, image=None, joints=None):
+    def __call__(self, vertices, camera_translation, camera_angles=[0., 0., 0.], image=None, joints=None):
         material = pyrender.MetallicRoughnessMaterial(
             metallicFactor=0.2,
             alphaMode='OPAQUE',
             baseColorFactor=(0.8, 0.3, 0.3, 1.0))
 
-        camera_translation[0] *= -1.
+        # camera_translation[0] *= -1.
 
         mesh = trimesh.Trimesh(vertices, self.faces)
 
@@ -35,12 +35,6 @@ class Renderer:
                 np.radians(180), [1, 0, 0])
             mesh.apply_transform(rot)
         else:
-            rotx = trimesh.transformations.rotation_matrix(
-                np.radians(-90), [1, 0, 0])
-            mesh.apply_transform(rotx)
-            roty = trimesh.transformations.rotation_matrix(
-                np.radians(-90), [0, 1, 0])
-            mesh.apply_transform(roty)
             dfdf = 0
 
         mesh = pyrender.Mesh.from_trimesh(mesh, material=material)
@@ -48,8 +42,7 @@ class Renderer:
         scene = pyrender.Scene(ambient_light=(0.5, 0.5, 0.5))
         scene.add(mesh, 'mesh')
 
-        camera_pose = np.eye(4)
-        camera_pose[:3, 3] = camera_translation
+        camera_pose = self.camera_pose(camera_translation, camera_angles)
         camera = pyrender.IntrinsicsCamera(fx=self.focal_length, fy=self.focal_length,
                                            cx=self.camera_center[0], cy=self.camera_center[1])
         scene.add(camera, pose=camera_pose)
@@ -77,27 +70,18 @@ class Renderer:
             output_img = color
         
         if joints is not None:
-            output_img = self.render_joints(joints, camera_translation, output_img)
+            output_img = self.render_joints(joints, camera_translation, camera_angles, output_img)
 
         return output_img
     
-    def project_joints(self, joints, camera_translation):
+    def project_joints(self, joints, camera_translation, camera_angles):
         
         # move joints in the coordinate system
         # rot = trimesh.transformations.rotation_matrix(
         #         np.radians(180), [1, 0, 0])
         # joints = trimesh.transformations.transform_points(joints, rot)
         
-        rotx = trimesh.transformations.rotation_matrix(
-                np.radians(-270), [1, 0, 0])
-        roty = trimesh.transformations.rotation_matrix(
-                np.radians(90), [0, 1, 0])
-        joints = trimesh.transformations.transform_points(joints, rotx)
-        joints = trimesh.transformations.transform_points(joints, roty)
-
-
-        camera_pose = np.eye(4)
-        camera_pose[:3, 3] = camera_translation
+        camera_pose = self.camera_pose([-camera_translation[0], camera_translation[1], camera_translation[2]], [camera_angles[0], -camera_angles[1], -camera_angles[2]], inverse=True)
 
         K = np.eye(3)
         K[0][0] = self.focal_length
@@ -107,14 +91,18 @@ class Renderer:
 
         Khomo = K @ np.concatenate((np.eye(3),np.zeros((3,1))), axis=1)
         P = Khomo @ camera_pose
+
+        joints[:, 0] *= -1.
+        # joints[:, 1] *= -1.
+        # joints[:, 2] *= -1.
+
         jHomo = np.concatenate((joints, np.ones((joints.shape[0], 1))), axis=1).transpose()
-        # jHomo = roty @ jHomo
         joints2d = P @ jHomo
         joints2d[:, :] /= joints2d[2, :]
         return joints2d[:2, :].transpose()
 
-    def render_joints(self, joints, camera_translation, image):
-        joints2d = self.project_joints(joints, camera_translation)
+    def render_joints(self, joints, camera_translation, camera_angles, image):
+        joints2d = self.project_joints(joints, camera_translation, camera_angles)
         imageOverlay = image.copy()
         for ikpt in range(joints2d.shape[0]):
             kptInt = (int(joints2d[ikpt][0]), int(joints2d[ikpt][1]))
@@ -122,6 +110,32 @@ class Renderer:
 
         return imageOverlay
     
+    def camera_pose(self, camera_translation, camera_angles, inverse=False):
+        camera_rotation = trimesh.transformations.rotation_matrix(
+            np.radians(camera_angles[2]), [0, 0, 1])
+        camera_rotation = camera_rotation @ trimesh.transformations.rotation_matrix(
+            np.radians(camera_angles[1]), [0, 1, 0])
+        camera_rotation = camera_rotation @ trimesh.transformations.rotation_matrix(
+            np.radians(camera_angles[0]), [1, 0, 0])
+        Rc = camera_rotation[:3, :3]
+
+        if not inverse:
+            camera_pose = camera_rotation
+            camera_pose[:3, 3] = camera_translation
+
+            Tc = np.eye(4)
+            Tc[:3, 3] = camera_translation
+            
+        else:
+            camera_pose = np.eye(4)
+            camera_pose[:3, :3] = Rc.transpose()
+
+            Tc = np.asarray(camera_translation).transpose()
+            trans_after_rot = -1. * Rc.transpose() @ Tc
+            camera_pose[:3, 3] = trans_after_rot
+
+        return camera_pose
+
     def rotation_3d_x(alpha):
         R = np.eye(4)
         R[1, 1] = math.cos(alpha)
