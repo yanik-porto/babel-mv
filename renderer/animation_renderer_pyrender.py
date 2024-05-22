@@ -59,10 +59,14 @@ class AnimationRendererPyrender(AnimationRenderer):
         if stdname == "":
             return
         
+        render_file_path = os.path.join(out_folder, stdname + '.avi')
+        if os.path.exists(render_file_path) and self.skip_existing:
+            print(render_file_path, " already exists")
+            return
+        
         self.load_animation(os.path.join(animation_folder, animation_filename))
         
-        out_file = os.path.join(out_folder, stdname + '.avi')
-        video=cv2.VideoWriter(out_file, cv2.VideoWriter_fourcc(*'DIVX'), 30, (1920,1080))
+        video=cv2.VideoWriter(render_file_path, cv2.VideoWriter_fourcc(*'DIVX'), 30, (1920,1080))
 
         render_time = AverageMeter()
 
