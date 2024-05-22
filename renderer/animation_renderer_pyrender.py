@@ -68,6 +68,8 @@ class AnimationRendererPyrender(AnimationRenderer):
         
         video=cv2.VideoWriter(render_file_path, cv2.VideoWriter_fourcc(*'DIVX'), 30, (1920,1080))
 
+        keypoints = []
+
         render_time = AverageMeter()
 
         batch = range(self.poses.shape[0])
@@ -120,6 +122,9 @@ class AnimationRendererPyrender(AnimationRenderer):
                 cv2.imshow("smplx", img_rendered)
                 cv2.waitKey(10)
 
+            keypoints.append(self.renderer.project_joints(joints[0].detach().cpu().numpy(), camera_translation, camera_angles))
+
         video.release()
+        np.savez(os.path.join(out_folder, stdname + '_0_gt.npz'), keypoint=keypoints)
 
         print("avg time render : {est_time.avg:.3f}\t".format(est_time=render_time))
