@@ -7,6 +7,7 @@ import cv2
 def parse_args():
     parser = argparse.ArgumentParser(description="visualize estimated pose and gt on video source")
     parser.add_argument('folder', type=str, help="path to the folder containing the input files to visualize")
+    parser.add_argument('--save', action='store_true', default=False, help="save output to file")
     return parser.parse_args()
 
 def add_keypoints(image, keypoints, color):
@@ -47,6 +48,9 @@ if __name__ == '__main__':
         cap = cv2.VideoCapture(video)
         assert(cap.isOpened())
 
+        if args.save:
+            video_out = cv2.VideoWriter(os.path.join("output", os.path.basename(video)), cv2.VideoWriter_fourcc(*'DIVX'), 30, (1920,1080))
+
         i = 0
         while(cap.isOpened()):
             ret, frame = cap.read()
@@ -65,7 +69,13 @@ if __name__ == '__main__':
             cv2.imshow("frame", frame)
             cv2.waitKey(10)
 
+            if args.save:
+                video_out.write(frame)
+
             i=i+1
+
+        if args.save:
+            video_out.release()
 
         cap.release()
         cv2.destroyAllWindows()
