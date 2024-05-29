@@ -7,6 +7,7 @@ from tools.renderer import Renderer
 import cv2
 import time
 from renderer.animation_renderer_pyrender import AnimationRendererPyrender
+from tqdm import tqdm
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Create babel-mv dataset")
@@ -20,6 +21,8 @@ if __name__ == "__main__":
     renderer = AnimationRendererPyrender(args.convention)
 
     for root, _, files in os.walk(args.meshes_path):
-        for f in files:
+        if root != args.meshes_path:
+            continue
+        for f in tqdm(files):
             if f.endswith('.npz'):
                 renderer.render_animation(root, f, ["Camera1", "Camera2", "Camera3"])
