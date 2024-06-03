@@ -58,13 +58,22 @@ if __name__ == '__main__':
                 print("video is over")
                 break
 
+            estim_kpt = None
+            gt_kpt = None
+
             if estim is not None:
                 if estim['keypoint'].shape[0] > i:
-                    frame = add_estimation(frame, estim['keypoint'][i, :, :])
+                    estim_kpt = estim['keypoint'][i, :, :]
+                    frame = add_estimation(frame, estim_kpt)
 
             if gt is not None:
                 if gt['keypoint'].shape[0] > i:
-                    frame = add_gt(frame, gt['keypoint'][i, :, :])
+                    gt_kpt = gt['keypoint'][i, :, :]
+                    frame = add_gt(frame, gt_kpt)
+
+            if gt_kpt is not None and estim_kpt is not None:
+                mpjpe = np.mean(np.sum(np.square(estim_kpt - gt_kpt), axis=-1))
+                frame = cv2.putText(frame, "mpjpe : " + str(int(mpjpe)), (1200, 1000), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
             cv2.imshow("frame", frame)
             cv2.waitKey(10)
