@@ -9,7 +9,7 @@ def parse_args():
     parser.add_argument("--out_filename", type=str, default="ntu_custom.pkl", help="Name of the output file")
     parser.add_argument("--unknown_label", action="store_true", default=False, help="set if the label is unknown")
     parser.add_argument("--verbose", action="store_true", default=False, help="set if need to print more information")
-    parser.add_argument("--only_suffix", type=str, default=".npz", help="Set if only files with the given suffix have to be taken into account")
+    parser.add_argument("--only_suffix", type=str, default="_0.npz", help="Set if only files with the given suffix have to be taken into account")
     parser.add_argument("--train_folder", type=str, default="train", help="Name of the training folder")
     parser.add_argument("--val_folder", type=str, default="val", help="Name of the validation folder")
     parser.add_argument("--append", action="store_true", default=False, help="if set, append sequences to existing output file")
