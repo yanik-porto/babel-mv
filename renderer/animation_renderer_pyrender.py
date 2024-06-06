@@ -113,7 +113,7 @@ class AnimationRendererPyrender(AnimationRenderer):
             assert(camera_name in self.cameras)
             camera_translation = self.cameras[camera_name][0]
             camera_angles = self.cameras[camera_name][1]
-            img_rendered = self.renderer(verts[0].detach().cpu().numpy(), camera_translation, camera_angles, joints=joints[0].detach().cpu().numpy())
+            img_rendered = self.renderer(verts[0].detach().cpu().numpy(), camera_translation, camera_angles)#, joints=joints[0].detach().cpu().numpy())
             img_rendered *= 255 # or any coefficient
             img_rendered = img_rendered.astype(np.uint8)
             video.write(img_rendered[:, :, :3])

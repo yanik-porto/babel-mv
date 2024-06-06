@@ -36,6 +36,7 @@ def compute_babel_statistics(babel_path):
 
 def print_statsbysplit(statsbysplit, babel_stats=None):
     for split, nseqbyaction in statsbysplit.items():
+        print("************", split, "****************")
         print("number of actions for ", split, " : ", len(nseqbyaction))
         full_babel_split = None
         if babel_stats is not None:
