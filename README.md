@@ -6,7 +6,7 @@ babel dataset for multiview operations
 <img src="doc/mygif_babel_vid.gif" width="320" height="240" />
 
 ## Data
-[Download](https://univbourgogne-my.sharepoint.com/:u:/g/personal/yannick_porto_etu_u-bourgogne_fr/ETmEKttoRFlLogo0w_3jtuwBuVuKVP_LHi49j0S1-sIkQA?e=9qnhoQ)
+12 classes : [Download](https://www.dropbox.com/scl/fi/jc97uk7fszw1k1mmoi3vo/babel_mv_0.2.pkl?rlkey=uns5suu5p5lpd8b2mf5w1gy10&st=0rco7rnh&dl=0)
 
 ## Generation
 
