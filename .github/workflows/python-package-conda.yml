@@ -36,7 +36,7 @@ jobs:
         unzip babel_v1-0_release.zip
     - name: Stats
       run:
-        python tools/data_stats.py babel_mv_0.1.pkl --babel_path babel_v1.0_release > coverage.txt
+        python tools/data_stats.py babel_mv_0.2.pkl --babel_path babel_v1.0_release > coverage.txt
     - name: Archivage coverage
       uses: actions/upload-artifact@v4
       with:
