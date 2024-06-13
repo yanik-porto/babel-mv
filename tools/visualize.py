@@ -10,6 +10,7 @@ def parse_args():
     parser.add_argument('folder', type=str, help="path to the folder containing the input files to visualize")
     parser.add_argument('--save', action='store_true', default=False, help="save output to file")
     parser.add_argument('--from_single_file', required=False, default=None, help='single file containing the poses for all videos')
+    parser.add_argument('--estim_id', type=int, default=0, required=False, help="id of the estimated pose")
     return parser.parse_args()
 
 def add_keypoints(image, keypoints, color):
@@ -47,14 +48,14 @@ if __name__ == '__main__':
         else:
             # load estimated pose from a file joint to the video
             estim = None
-            estim_path = vidnoext + '_0.npz'
+            estim_path = vidnoext + '_' + str(args.estim_id) + '.npz'
             if os.path.exists(estim_path):
                 estim = dict(np.load(estim_path))
                 print(estim['keypoint'].shape)
 
             # load gt pose
             gt = None
-            gt_path = vidnoext + '_0_gt.npz'
+            gt_path = vidnoext + '_' + str(args.estim_id) + '_gt.npz'
             if os.path.exists(gt_path):
                 gt = dict(np.load(gt_path))
                 print(gt['keypoint'].shape)
@@ -97,7 +98,7 @@ if __name__ == '__main__':
                 frame = cv2.putText(frame, "mpjpe : " + str(int(mpjpe)), (1200, 1000), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
             cv2.imshow("frame", frame)
-            cv2.waitKey(10)
+            cv2.waitKey(100)
             if args.save:
                 video_out.write(frame)
 
