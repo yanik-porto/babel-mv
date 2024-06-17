@@ -9,16 +9,20 @@ def parse_args():
     parser.add_argument("--out_filename", type=str, default="ntu_custom.pkl", help="Name of the output file")
     parser.add_argument("--unknown_label", action="store_true", default=False, help="set if the label is unknown")
     parser.add_argument("--verbose", action="store_true", default=False, help="set if need to print more information")
-    parser.add_argument("--only_suffix", type=str, default="_0.npz", help="Set if only files with the given suffix have to be taken into account")
+    parser.add_argument("--estim_id", type=int, default=0, required=False, help="id of the estimated poses to be loaded")
     parser.add_argument("--train_folder", type=str, default="train", help="Name of the training folder")
     parser.add_argument("--val_folder", type=str, default="val", help="Name of the validation folder")
     parser.add_argument("--append", action="store_true", default=False, help="if set, append sequences to existing output file")
+    parser.add_argument("--with_gt", action="store_true", default=False, help="if set, add gt to dictionary if exists")
     return parser.parse_args()
 
 def fill_split(args, ntu_format, folder_path, split_name="xsub_val"):
+    estim_suffix = '_' + str(args.estim_id) + '.npz'
+    gt_suffix = '_' + str(args.estim_id) + '_gt.npz'
+
     for root, _, files in os.walk(folder_path):
         for f in files:
-            if f.endswith(args.only_suffix):
+            if f.endswith(estim_suffix):
                 if args.verbose:
                     print(f)
                 skel_path = os.path.join(root, f)
@@ -54,6 +58,17 @@ def fill_split(args, ntu_format, folder_path, split_name="xsub_val"):
                 annot["img_shape"] = (1080, 1920)
                 annot["original_shape"] = (1080, 1920)
                 annot["total_frames"] = keypoint.shape[1]
+
+                if args.with_gt:
+                    gt_path = skel_path.replace(estim_suffix, gt_suffix)
+                    if os.path.exists(gt_path):
+                        gt = dict(np.load(gt_path))
+                        gt_keypoint = gt["keypoint"]
+                        if len(gt_keypoint.shape) == 3:
+                            gt_keypoint = np.expand_dims(gt_keypoint, axis=0)
+                        annot['gt_keypoint'] = gt_keypoint
+                    else:
+                        print(gt_path, " does not exists")
 
                 ntu_format["annotations"].append(annot)
                 ntu_format["split"][split_name].append(frame_dir)
