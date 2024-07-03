@@ -18,20 +18,38 @@ Render sequences with :
 
 `blender --python babel-mv/renderer/animation_renderer_blender.py`
 
+
+
+This will display the three images side by side if the images are not too wide.
+
+<p float="left">
 <img src="doc/blender_cam1.gif" width="320" height="240" /> 
 <img src="doc/blender_cam2.gif" width="320" height="240" />
 <img src="doc/blender_cam3.gif" width="320" height="240" />
+</p>
 
 ### Pyrender
 
-`python render.py /home/yanik/Documents/datasets/BABEL_MV/kick_pyrender --convention='COCO' `
+`python render.py <MESHES_FOLDER_PATH> --convention='COCO' `
 
+<p float="left">
 <img src="doc/pyrender_cam1.gif" width="320" height="240" /> 
 <img src="doc/pyrender_cam2.gif" width="320" height="240" />
 <img src="doc/pyrender_cam3.gif" width="320" height="240" />
+</p>
 
 ### visualize
 
 Visualize video with estimated humand pose and ground truth
 
 `python tools/visualize.py <RENDER_FOLDER_PATH>`
+
+## Stats
+
+Duration of sequences by action:
+`python tools/data_plots.py <DATASET_FILE_PATH> --ntu <NTU_FILE_PATH>`
+
+<p float="left">
+<img src="doc/duration_babel_mv.png" width="320" height="240" />
+<img src="doc/duration_ntu.png" width="320" height="240" />
+</p>
