@@ -61,7 +61,9 @@ def dur_by_action_to_plot(dur_by_action, labels, figname):
         ax.bar(range(0, max_dur, 10), durs, 5, label=labels[action] + " (" + str(int(sum(durs))) + ")", bottom=bottom)
         bottom += durs
 
-    ax.set_title("duration by action")
+    ax.set_title(figname)
+    ax.set_xlabel('number of frames in sequence')
+    ax.set_ylabel('number of sequences')
     ax.legend(loc="upper right")
     plt.savefig(figname + '.png')
 
