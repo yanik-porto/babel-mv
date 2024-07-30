@@ -6,6 +6,8 @@ import numpy as np
 import cv2
 import math
 
+from .matrix import rotation_3d_x, rotation_3d_y, rotation_3d_z
+
 class Renderer:
     """
     Renderer used for visualizing the SMPL model
@@ -42,7 +44,7 @@ class Renderer:
 
         mesh = pyrender.Mesh.from_trimesh(mesh, material=material)
 
-        scene = pyrender.Scene(ambient_light=(0.5, 0.5, 0.5))
+        scene = pyrender.Scene(ambient_light=(0.2, 0.2, 0.2))
         scene.add(mesh, 'mesh')
 
         camera_pose = self.camera_pose(camera_translation, camera_angles)
@@ -52,16 +54,17 @@ class Renderer:
 
 
         light = pyrender.DirectionalLight(color=[1.0, 1.0, 1.0], intensity=1)
-        light_pose = np.eye(4)
-
+        # light_pose = np.eye(4)
+        light_pose = rotation_3d_x(1.57)
         light_pose[:3, 3] = np.array([0, -1, 1])
         scene.add(light, pose=light_pose)
 
+        light_pose = rotation_3d_x(-1.57)
         light_pose[:3, 3] = np.array([0, 1, 1])
         scene.add(light, pose=light_pose)
 
-        light_pose[:3, 3] = np.array([1, 1, 2])
-        scene.add(light, pose=light_pose)
+        # light_pose[:3, 3] = np.array([1, 1, 2])
+        # scene.add(light, pose=light_pose)
 
         color, rend_depth = self.renderer.render(scene, flags=pyrender.RenderFlags.RGBA)
         color = color.astype(np.float32) / 255.0
@@ -138,27 +141,3 @@ class Renderer:
             camera_pose[:3, 3] = trans_after_rot
 
         return camera_pose
-
-    def rotation_3d_x(alpha):
-        R = np.eye(4)
-        R[1, 1] = math.cos(alpha)
-        R[1, 2] = -math.sin(alpha)
-        R[2, 1] = math.sin(alpha)
-        R[2, 2] = math.cos(alpha)
-        return R
-    
-    def rotation_3d_y(alpha):
-        R = np.eye(4)
-        R[0, 0] = math.cos(alpha)
-        R[0, 2] = math.sin(alpha)
-        R[2, 0] = -math.sin(alpha)
-        R[2, 2] = math.cos(alpha)
-        return R
-    
-    def rotation_3d_z(alpha):
-        R = np.eye(4)
-        R[0, 0] = math.cos(alpha)
-        R[0, 1] = -math.sin(alpha)
-        R[1, 0] = math.sin(alpha)
-        R[1, 1] = math.cos(alpha)
-        return R
