@@ -1,2 +1,4 @@
 tqdm
 numpy
+pyrender
+opencv-python

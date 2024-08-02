@@ -12,7 +12,7 @@ from tqdm import tqdm
 def parse_args():
     parser = argparse.ArgumentParser(description="Create babel-mv dataset")
     parser.add_argument("meshes_path", type=str, help="Path to the folder containing mesh files")
-    parser.add_argument('--convention', type=str, choices=['LSP', 'COCO'], default='LSP', help="Skeleton convention to use")
+    parser.add_argument('--convention', type=str, choices=['LSP', 'COCO'], default='COCO', help="Skeleton convention to use")
     return parser.parse_args()
 
 if __name__ == "__main__":
