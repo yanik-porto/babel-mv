@@ -1,16 +1,18 @@
-from .animation_renderer_joints_2D import AnimationRendererJoints2D
-from smpl import SMPLX, SMPL
+from .animation_renderer_joints_3D import AnimationRendererJoints3D
 from tools.renderer import Renderer
 import os
 import numpy as np
 import torch
-import cv2
 import time
 from tools.utils import AverageMeter
 
-class AnimationRendererPyrender(AnimationRendererJoints2D):
+class AnimationRendererJoints2D(AnimationRendererJoints3D):
     def __init__(self, convention='LSP', skip_existing = False, strict_label = False, n_classes = 120, only_some_actions = False):
-        super(AnimationRendererPyrender, self).__init__(convention, skip_existing, strict_label, n_classes, only_some_actions)
+        super(AnimationRendererJoints2D, self).__init__(convention, skip_existing, strict_label, n_classes, only_some_actions)
+
+        focal_length_mm = 50
+
+        self.renderer = Renderer(focal_length_mm=focal_length_mm, viewport_width=1920, viewport_height=1080, faces=self.bm.faces)
 
     def render_animation_in_camera(self, camera_name, animation_filename, animation_folder):        
         an_f_noext, _ = os.path.splitext(animation_filename)
@@ -21,14 +23,12 @@ class AnimationRendererPyrender(AnimationRendererJoints2D):
         if stdname == "":
             return
         
-        render_file_path = os.path.join(out_folder, stdname + '.avi')
-        if os.path.exists(render_file_path) and self.skip_existing:
-            print(render_file_path, " already exists")
+        kpts_file_path = os.path.join(out_folder, stdname + '_0_gt.npz')
+        if os.path.exists(kpts_file_path) and self.skip_existing:
+            print(kpts_file_path, " already exists")
             return
         
         self.load_animation(os.path.join(animation_folder, animation_filename))
-        
-        video=cv2.VideoWriter(render_file_path, cv2.VideoWriter_fourcc(*'DIVX'), 30, (1920,1080))
 
         keypoints = []
 
@@ -39,25 +39,16 @@ class AnimationRendererPyrender(AnimationRendererJoints2D):
         for ib in batch:
             st = time.time()
 
-            joints, verts = self.joints_from_pose(ib)
+            joints, _ = self.joints_from_pose(ib)
                 
             render_time.update(time.time() - st)
 
             assert(camera_name in self.cameras)
             camera_translation = self.cameras[camera_name][0]
             camera_angles = self.cameras[camera_name][1]
-            img_rendered = self.renderer(verts[0].detach().cpu().numpy(), camera_translation, camera_angles)#, joints=joints[0].detach().cpu().numpy())
-            img_rendered *= 255 # or any coefficient
-            img_rendered = img_rendered.astype(np.uint8)
-            video.write(img_rendered[:, :, :3])
-
-            if False:
-                cv2.imshow("smplx", img_rendered)
-                cv2.waitKey(10)
 
             keypoints.append(self.renderer.project_joints(joints[0].detach().cpu().numpy(), camera_translation, camera_angles))
 
-        video.release()
-        np.savez(os.path.join(out_folder, stdname + '_0_gt.npz'), keypoint=keypoints)
+        np.savez(kpts_file_path, keypoint=keypoints)
 
         print("avg time render : {est_time.avg:.3f}\t".format(est_time=render_time))
