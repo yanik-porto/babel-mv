@@ -2,3 +2,5 @@ tqdm
 numpy
 pyrender
 opencv-python
+smplx
+chumpy # comment import bool, ... from numpy
