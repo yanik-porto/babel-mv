@@ -1,4 +1,3 @@
-# import trimesh
 import numpy as np
 
 from .matrix import rotation_3d_x, rotation_3d_y, rotation_3d_z
@@ -27,16 +26,19 @@ class Scene3D:
             camera_pose = camera_rotation
             camera_pose[:3, 3] = camera_translation
 
-            Tc = np.eye(4)
-            Tc[:3, 3] = camera_translation
-            
-        else:
+        elif False: # estimation of inverse
             camera_pose = np.eye(4)
             camera_pose[:3, :3] = Rc.transpose()
 
             Tc = np.asarray(camera_translation).transpose()
             trans_after_rot = -1. * Rc.transpose() @ Tc
             camera_pose[:3, 3] = trans_after_rot
+        else:
+            camera_pose = camera_rotation
+            camera_pose[:3, 3] = camera_translation
+            camera_pose = np.linalg.inv(camera_pose)
+
+                
 
         return camera_pose
 
