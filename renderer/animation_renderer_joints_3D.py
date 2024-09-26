@@ -45,19 +45,8 @@ class AnimationRendererJoints3D(AnimationRenderer):
         self.poses = None
         self.trans = None
 
-    def render_animation(self, animation_folder, animation_filename, cams):
-        self.clear()
-
-        classidx = self.get_classidx_from_filename(os.path.splitext(animation_filename)[0])
-        if classidx >= self.n_classes:
-            print("Skipped animation rendering because class index is out of range : {}".format(classidx))
-            return
-
-        print("Render animation {}".format(animation_filename))
-
+    def render_animation_in_cameras(self, cams, animation_filename, animation_folder):
         self.regress_joints(animation_filename, animation_folder)
-
-        self.clear()
 
 
     def regress_joints(self, animation_filename, animation_folder):        
