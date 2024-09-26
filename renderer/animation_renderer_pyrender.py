@@ -12,7 +12,6 @@ class AnimationRendererPyrender(AnimationRendererJoints2D):
     def __init__(self, convention='LSP', skip_existing = False, strict_label = False, n_classes = 120, only_some_actions = False):
         super(AnimationRendererPyrender, self).__init__(convention, skip_existing, strict_label, n_classes, only_some_actions)
 
-
     def render_animation_in_cameras(self, cams, animation_filename, animation_folder):
         # TODO : list all cameras in the scene
         for cam in cams:
