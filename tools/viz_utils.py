@@ -60,8 +60,8 @@ def add_camera_mesh_like_blender(extrinsic, camerascale=1, doinverse=True):
     r[0][2] = np.array([0.5, -0.5, 0]) * camerascale
     r[0][3] = np.array([-0.5, -0.5, 0]) * camerascale
 
-    r[1][0] = np.array([-1, 1, -1]) * camerascale
-    r[1][1] = np.array([1, 1, -1]) * camerascale
+    r[1][0] = np.array([-1, 1.8, -1]) * camerascale
+    r[1][1] = np.array([1, 1.8, -1]) * camerascale
     r[1][2] = np.array([1, -1, -1]) * camerascale
     r[1][3] = np.array([-1, -1, -1]) * camerascale
 
