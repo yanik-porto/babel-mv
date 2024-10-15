@@ -8,7 +8,7 @@ from tools.scene3d import Scene3D
 import trimesh
 import numpy as np
 from renderer.animation_renderer_joints_3D import AnimationRendererJoints3D
-
+import math
 
 class TestPyrender(unittest.TestCase):
     def test_pyrender(self):
@@ -22,14 +22,29 @@ class TestPyrender(unittest.TestCase):
         mesh_obj_p = "tests/1761_7df9f1da-613e-458b-973f-12bf8f0569b4_kick.npz"
         renderer = AnimationRendererJoints3D()
         renderer.load_animation(mesh_obj_p)
+
+        global_orient = renderer.poses[0, :3]
+        global_orient = [a * 180 / math.pi for a in global_orient]
+        print("global_orient: ", global_orient)
+
         _, verts = renderer.joints_from_pose(0)
-        mesh = trimesh.Trimesh(verts[0].detach().cpu().numpy(), renderer.bm.faces)
+        verts = verts[0].detach().cpu().numpy()
+
+        # Rotate around z axis
+        rotz = rotation_3d_z(np.radians(0))
+        vHomo = np.concatenate((verts, np.ones((verts.shape[0], 1))), axis=1).transpose()
+        vRotated = rotz @ vHomo
+        verts = vRotated.transpose()[:, :3]
+
+        # Mesh from vertices
+        mesh = trimesh.Trimesh(verts, renderer.bm.faces)
         material = pyrender.MetallicRoughnessMaterial(
             metallicFactor=0.2,
             alphaMode='OPAQUE',
             baseColorFactor=(0.5, 0.3, 0.7, 1.0))
         mesh = pyrender.Mesh.from_trimesh(mesh, material=material)
 
+        # create scene
         scene = pyrender.Scene(ambient_light=(0.2, 0.2, 0.2))
         scene.add(mesh, 'mesh')
         light = pyrender.DirectionalLight(color=[1.0, 1.0, 1.0], intensity=1)
