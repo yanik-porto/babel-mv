@@ -8,6 +8,7 @@ sys.path.insert(0, os.getcwd())
 from tools.matrix import rotation_3d_x, rotation_3d_y, rotation_3d_z
 from tools.scene3d import Scene3D
 from tools.visualize import add_estimation
+from tools.geometry import vector_mesh_intersection, create_realistic_mask
 from renderer.animation_renderer_joints_3D import AnimationRendererJoints3D
 
 class TestProjection(unittest.TestCase):
@@ -22,6 +23,8 @@ class TestProjection(unittest.TestCase):
         renderer = AnimationRendererJoints3D()
         cameras = renderer.cameras
         cam = cameras["Camera1"]
+
+        joints = create_realistic_mask(np.expand_dims(joints, axis=0), cam[0])[0]
 
         camera_translation = cam[0]
         camera_angles = cam[1]
