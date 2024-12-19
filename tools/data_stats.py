@@ -44,6 +44,7 @@ def print_statsbysplit(statsbysplit, babel_stats=None):
                 if babel_split in split:
                     full_babel_split = babel_stats[babel_split]
 
+        nseqbyaction = dict(sorted(nseqbyaction.items()))
         for action, n in nseqbyaction.items():
             total = "?"
             if full_babel_split is not None:
