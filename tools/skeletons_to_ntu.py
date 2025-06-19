@@ -14,6 +14,9 @@ def parse_args():
     parser.add_argument("--val_folder", type=str, default="val", help="Name of the validation folder")
     parser.add_argument("--append", action="store_true", default=False, help="if set, append sequences to existing output file")
     parser.add_argument("--with_gt", action="store_true", default=False, help="if set, add gt to dictionary if exists")
+    parser.add_argument("--only_gt", action="store_true", default=False, help="if set, add only gt to dictionary")
+    parser.add_argument("--only_joints", action="store_true", default=False, help="if set, add only joints to dictionary")
+    parser.add_argument("--num_classes", type=int, default=120, required=False, help="num of classes to export")
     return parser.parse_args()
 
 def fill_split(args, ntu_format, folder_path, split_name="xsub_val"):
@@ -52,7 +55,11 @@ def fill_split(args, ntu_format, folder_path, split_name="xsub_val"):
                         frame_dir = frame_dir[0]
                     elif len(splits) > 1:
                         frame_dir = frame_dir[:-2]
-                    annot["label"] = int(frame_dir[-3:]) - 1
+
+                    label = int(frame_dir[-3:]) - 1
+                    if label >= args.num_classes:
+                        continue
+                    annot["label"] = label
                 
                 annot["frame_dir"] = frame_dir
                 annot["img_shape"] = (1080, 1920)
@@ -76,6 +83,96 @@ def fill_split(args, ntu_format, folder_path, split_name="xsub_val"):
     seq_len = len(ntu_format["split"][split_name])
     print(f"Export {seq_len} sequences in {split_name}")
 
+def fill_split_with_gt(args, ntu_format, folder_path, split_name="xsub_val"):
+    gt_suffix = '_' + str(args.estim_id) + '_gt.npz'
+
+    for root, _, files in os.walk(folder_path):
+        for f in files:
+            if f.endswith(gt_suffix):
+                if args.verbose:
+                    print(f)
+                skel_path = os.path.join(root, f)
+                skel = dict(np.load(skel_path))
+
+                if "keypoint" not in skel:
+                    continue
+
+                annot = {}
+                keypoint = skel["keypoint"]
+                if len(keypoint.shape) == 3:
+                    keypoint = np.expand_dims(keypoint, axis=0)
+                annot["gt_keypoint"] = keypoint
+
+                frame_dir = f.split(".")[0]
+                if args.unknown_label:
+                    annot["label"] = 0
+                else:
+                    splits = frame_dir.split("_")
+                    if len(splits) == 1:
+                        frame_dir = frame_dir[0]
+                    elif len(splits) > 1:
+                        frame_dir = frame_dir[:-5]
+
+                    label = int(frame_dir[-3:]) - 1
+                    if label >= args.num_classes:
+                        continue
+                    annot["label"] = label
+                
+                annot["frame_dir"] = frame_dir
+                annot["img_shape"] = (1080, 1920)
+                annot["original_shape"] = (1080, 1920)
+                annot["total_frames"] = keypoint.shape[1]
+
+                ntu_format["annotations"].append(annot)
+                ntu_format["split"][split_name].append(frame_dir)
+
+    seq_len = len(ntu_format["split"][split_name])
+    print(f"Export {seq_len} sequences in {split_name}")
+
+def fill_split_with_joints(args, ntu_format, folder_path, split_name="xsub_val"):
+    joints_suffix = '_' + str(args.estim_id) + '_joints.npz'
+
+    for root, _, files in os.walk(folder_path):
+        for f in files:
+            if f.endswith(joints_suffix):
+                if args.verbose:
+                    print(f)
+                skel_path = os.path.join(root, f)
+                skel = dict(np.load(skel_path))
+
+                if "joints" not in skel:
+                    continue
+
+                annot = {}
+                keypoint = skel["joints"]
+                if len(keypoint.shape) == 3:
+                    keypoint = np.expand_dims(keypoint, axis=0)
+                annot["joints"] = keypoint
+
+                frame_dir = f.split(".")[0]
+                if args.unknown_label:
+                    annot["label"] = 0
+                else:
+                    splits = frame_dir.split("_")
+                    if len(splits) == 1:
+                        frame_dir = frame_dir[0]
+                    elif len(splits) > 1:
+                        frame_dir = frame_dir[:-9]
+
+                    label = int(frame_dir[-3:]) - 1
+                    if label >= args.num_classes:
+                        continue
+                    annot["label"] = label
+                
+                annot["frame_dir"] = frame_dir
+                annot["total_frames"] = keypoint.shape[1]
+
+                ntu_format["annotations"].append(annot)
+                ntu_format["split"][split_name].append(frame_dir)
+
+    seq_len = len(ntu_format["split"][split_name])
+    print(f"Export {seq_len} sequences in {split_name}")
+
 def append_to_existing(new_data, old_data, split, args):
     print("before appening, existing data ", split, " contains : ", len(old_data["split"][split]))
     for frame_dir in new_data["split"][split]:
@@ -92,6 +189,15 @@ def append_to_existing(new_data, old_data, split, args):
 
     print("after appening, existing data ", split, " contains : ", len(old_data["split"][split]))
 
+def export(folder, splitname):
+    if os.path.isdir(folder):
+        if args.only_gt:
+            fill_split_with_gt(args, ntu_format, folder, splitname)
+        if args.only_joints:
+            fill_split_with_joints(args, ntu_format, folder, splitname)
+        else:
+            fill_split(args, ntu_format, folder, splitname)
+
 if __name__ == '__main__':
     args = parse_args()
 
@@ -102,12 +208,12 @@ if __name__ == '__main__':
     ntu_format["annotations"] = []
 
     train_folder = os.path.join(args.in_path, args.train_folder)
-    val_folder = os.path.join(args.in_path, args.val_folder)
+    export(train_folder, "xsub_train")
 
-    if os.path.isdir(train_folder):
-        fill_split(args, ntu_format, train_folder, "xsub_train")
-    if os.path.isdir(val_folder):
-        fill_split(args, ntu_format, val_folder, "xsub_val")
+    val_folder = os.path.join(args.in_path, args.val_folder)
+    export(val_folder, "xsub_val")
+
+    
 
     out_path = os.path.join(args.in_path, args.out_filename)
     if os.path.exists(out_path):
@@ -124,4 +230,3 @@ if __name__ == '__main__':
     else:
         with open(out_path, "wb") as outf:
             pickle.dump(ntu_format, outf)
-        
