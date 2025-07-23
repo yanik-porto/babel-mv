@@ -106,14 +106,21 @@ class AnimationRendererJoints3D(AnimationRenderer):
                                                 right_hand_pose=right_hand_pose.cuda(),
                                                 transl=self.trans[ib:ib+1].cuda())
         elif self.convention == 'COCO':
-            global_orient = self.poses[ib:ib+1, :3]
-            body_pose = self.poses[ib:ib+1, 3:3+21*3].reshape(1, 21, 3)
-            left_hand_pose = self.poses[ib:ib+1, 25*3:25*3 + 3].reshape(1, 1, 3)
-            right_hand_pose = self.poses[ib:ib+1, 25*3 + 15*3:25*3 + 15*3 + 3].reshape(1, 1, 3)
-            body_pose = torch.cat((body_pose, left_hand_pose), axis=1)
-            body_pose = torch.cat((body_pose, right_hand_pose), axis=1)
-            body_pose = body_pose.reshape(1, 23*3)
-            joints, verts = self.bm(betas=self.betas[:, :10],  global_orient=global_orient.cuda(),
+            pose = self.poses[ib]
+            global_orient = pose[:3].reshape(1, 3)
+            if len(pose) == 24 * 3:
+                body_pose = pose[3:24*3].reshape(1, 23*3)
+            else:
+                body_pose = pose[3:3+21*3].reshape(1, 21, 3)
+                left_hand_pose = pose[25*3:25*3 + 3].reshape(1, 1, 3)
+                right_hand_pose = pose[25*3 + 15*3:25*3 + 15*3 + 3].reshape(1, 1, 3)
+                body_pose = torch.cat((body_pose, left_hand_pose), axis=1)
+                body_pose = torch.cat((body_pose, right_hand_pose), axis=1)
+                body_pose = body_pose.reshape(1, 23*3)
+            betas = self.betas
+            if len(betas) > 1:
+                betas = betas[ib:ib+1]
+            joints, verts = self.bm(betas=betas[:, :10],  global_orient=global_orient.cuda(),
                                                 body_pose=body_pose.cuda(), transl=self.trans[ib:ib+1].cuda())
             
         return joints, verts
