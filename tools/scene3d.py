@@ -3,26 +3,18 @@ import math
 
 from .matrix import rotation_3d_x, rotation_3d_y, rotation_3d_z
 
-def randint_exclude_range(min_value, max_value, forbidden_range):
-    """Generates a random integer within the specified range, excluding the forbidden range.
-
-    Args:
-        min_value: The minimum value for the random integer.
-        max_value: The maximum value for the random integer.
-        forbidden_range: A tuple representing the forbidden range (start, end).
-
-    Returns:
-        A random integer within the specified range, excluding the forbidden range.
-    """
-
+def xy_randint(min_value, max_value, forbidden_range):
+    min_f_range = forbidden_range[0]
+    max_f_range = forbidden_range[1]
     while True:
-        random_number = np.random.randint(min_value, max_value)
-        if random_number < forbidden_range[0] or random_number > forbidden_range[1]:
-            return random_number
+        x = np.random.randint(min_value, max_value)
+        y = np.random.randint(min_value, max_value)
+        if x < min_f_range or y < min_f_range or x > max_f_range or y > max_f_range:
+            return x, y
 
 def random_camera_translation():
-    x = randint_exclude_range(-6500, 7500, (-1000, 1000)) / 1000.
-    y = randint_exclude_range(-6500, 7500, (-1000, 1000)) / 1000.
+    x1000, y1000 = xy_randint(-6500, 7500, (-1000, 1000))
+    x, y = x1000 / 1000., y1000 / 1000.
     z = np.random.randint(3000, 5000) / 1000.
     return np.array([x, y, z], dtype=float)
 
@@ -38,9 +30,9 @@ def compute_camera_rotation(translation):
     y_angle = 0
 
     # yaw angle
-    tanz = x / -y
+    tanz = x / -y if abs(y) > 1e-3 else -math.inf
     z_angle = math.atan(tanz) * 180. / math.pi
-    if y > 0:
+    if y >= 0.:
         z_angle += 180.
 
     return x_angle, y_angle, z_angle
@@ -79,6 +71,17 @@ def random_camera_pose():
     cam_angles = compute_camera_rotation(rand_trans)
     random_pose = camera_pose(rand_trans, cam_angles, inverse=False)
     return random_pose
+
+def sampled_camera_poses(step_degree = 30):
+    trans_z = 4
+    radius = 7
+    angles = range(-180, 180, step_degree)
+    angles_rad = [math.radians(a) for a in angles]
+    vertices = [[math.cos(a) * radius, math.sin(a) * radius, trans_z] for a in angles_rad]
+
+    print(vertices)
+    cams = [(t, compute_camera_rotation(t)) for t in vertices]
+    return cams
 
 class Scene3D:
     def __init__(self, focal_length_mm=50, viewport_width=224, viewport_height=224):

@@ -29,7 +29,7 @@ class AnimationRendererJoints3D(AnimationRenderer):
 
     def load_animation(self, animation_path):
         if animation_path == self.animation_loaded:
-            return
+            return self.all_joints, self.all_verts
         
         data = dict(np.load(animation_path))
         self.betas = torch.from_numpy(data['betas']).float().cuda()
@@ -40,6 +40,9 @@ class AnimationRendererJoints3D(AnimationRenderer):
 
         self.animation_loaded = animation_path
 
+        # return len(self.poses)
+        return self.all_joints_from_poses()
+    
     def clear(self):
         self.betas = None
         self.poses = None
@@ -49,7 +52,7 @@ class AnimationRendererJoints3D(AnimationRenderer):
         self.regress_joints(animation_filename, animation_folder)
 
 
-    def regress_joints(self, animation_filename, animation_folder):        
+    def regress_joints(self, animation_filename, animation_folder):
         an_f_noext, _ = os.path.splitext(animation_filename)
         out_folder = os.path.join(animation_folder, an_f_noext)
         os.makedirs(out_folder, exist_ok=True)
@@ -115,5 +118,16 @@ class AnimationRendererJoints3D(AnimationRenderer):
             
         return joints, verts
     
+    def all_joints_from_poses(self):
+        batch = range(self.poses.shape[0])
+        self.all_joints = []
+        self.all_verts = []
+        torch.no_grad()
+        for ib in batch:
+                joints, verts = self.joints_from_pose(ib)
+                self.all_joints.append(joints[0].detach().cpu().numpy())
+                self.all_verts.append(verts[0].detach().cpu().numpy())
+        return self.all_joints, self.all_verts
+        
     def render_animation_in_camera(self, camera_name, animation_filename, animation_folder):
         raise NotImplementedError    

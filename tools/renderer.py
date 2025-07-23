@@ -1,12 +1,15 @@
 import os
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
+os.environ['EGL_PLATFORM'] = "surfaceless"
 import pyrender
 import trimesh
 import numpy as np
-import cv2
+# import cv2
+import time
 
 from .matrix import rotation_3d_x, rotation_3d_y, rotation_3d_z
 from .scene3d import Scene3D
+from tools.utils import AverageMeter
 
 class Renderer(Scene3D):
     """
@@ -20,49 +23,99 @@ class Renderer(Scene3D):
                                        point_size=1.0)
         self.faces = faces
 
-    def __call__(self, vertices, camera_translation, camera_angles=[0., 0., 0.], image=None, joints=None):
+        self.load_mesh_time = AverageMeter()
+        self.load_scene_time = AverageMeter()
+        self.render_time = AverageMeter()
+
+    def load_mesh(self, vertices):
+        st = time.time()
+
         material = pyrender.MetallicRoughnessMaterial(
             metallicFactor=0.2,
             alphaMode='OPAQUE',
-            baseColorFactor=(0.8, 0.3, 0.3, 1.0))
-
-        # camera_translation[0] *= -1.
+            baseColorFactor=(0.5, 0.3, 0.7, 1.0))
 
         mesh = trimesh.Trimesh(vertices, self.faces)
-
-        if False: #hmr from image mode
-            rot = trimesh.transformations.rotation_matrix(
-                np.radians(180), [1, 0, 0])
-            mesh.apply_transform(rot)
-        else:
-            dfdf = 0
-
         mesh = pyrender.Mesh.from_trimesh(mesh, material=material)
+        self.scene = pyrender.Scene(ambient_light=(0.2, 0.2, 0.2))
+        self.scene.add(mesh, 'mesh')
 
-        scene = pyrender.Scene(ambient_light=(0.2, 0.2, 0.2))
-        scene.add(mesh, 'mesh')
+        self.load_mesh_time.update(time.time() - st)
 
+    def render_mesh(self, camera_translation, camera_angles=[0., 0., 0.], image=None, joints=None):
+        # st = time.time()
+
+        # material = pyrender.MetallicRoughnessMaterial(
+        #     metallicFactor=0.2,
+        #     alphaMode='OPAQUE',
+        #     baseColorFactor=(0.5, 0.3, 0.7, 1.0))
+
+        # # camera_translation[0] *= -1.
+
+        # mesh = trimesh.Trimesh(vertices, self.faces)
+
+        # if False: #hmr from image mode
+        #     rot = trimesh.transformations.rotation_matrix(
+        #         np.radians(180), [1, 0, 0])
+        #     mesh.apply_transform(rot)
+        # else:
+        #     # rotx = trimesh.transformations.rotation_matrix(
+        #     #     np.radians(-90), [1, 0, 0])
+        #     # mesh.apply_transform(rotx)
+        #     # roty = trimesh.transformations.rotation_matrix(
+        #     #     np.radians(-90), [0, 1, 0])
+        #     # mesh.apply_transform(roty)
+
+        #     # rotx = trimesh.transformations.rotation_matrix(
+        #     #     np.radians(-90), [1, 0, 0])
+        #     # mesh.apply_transform(rotx)
+        #     # roty = trimesh.transformations.rotation_matrix(
+        #     #     np.radians(-90), [0, 1, 0])
+        #     # mesh.apply_transform(roty)
+
+        #     # mesh.apply_transform(camera_rotation)
+        #     dfdf = 0
+
+        # mesh = pyrender.Mesh.from_trimesh(mesh, material=material)
+        # self.load_mesh_time.update(time.time() - st)
+
+        # scene = pyrender.Scene(ambient_light=(0.2, 0.2, 0.2))
+        # scene.add(mesh, 'mesh')
+
+        st = time.time()
         # build camera transformation matrix
-        camera_pose = self.camera_pose(camera_translation, camera_angles)
-        camera = pyrender.IntrinsicsCamera(fx=self.focal_length, fy=self.focal_length,
-                                           cx=self.camera_center[0], cy=self.camera_center[1])
-        scene.add(camera, pose=camera_pose)
+        # camera_pose = self.camera_pose([-camera_translation[0], camera_translation[1], camera_translation[2]], [camera_angles[0], -camera_angles[1], -camera_angles[2]], inverse=True)
+        camera_pose = self.camera_pose(camera_translation, camera_angles, inverse=False)
+        if self.scene.has_node('camera'):
+            self.scene.get_node(name='camera').matrix = camera_pose
+        else:
+            camera = pyrender.IntrinsicsCamera(fx=self.focal_length, fy=self.focal_length,
+                                            cx=self.camera_center[0], cy=self.camera_center[1])
+            self.scene.add(camera, pose=camera_pose)
 
+        # V, P = self.renderer._renderer._get_camera_matrices(scene)
+        # print(V)
+        # print(P)
+
+        # pyrender.Viewer(scene, viewport_size=(1000, 1000))
 
         light = pyrender.DirectionalLight(color=[1.0, 1.0, 1.0], intensity=1)
         # light_pose = np.eye(4)
         light_pose = rotation_3d_x(1.57)
         light_pose[:3, 3] = np.array([0, -1, 1])
-        scene.add(light, pose=light_pose)
+        self.scene.add(light, pose=light_pose)
 
         light_pose = rotation_3d_x(-1.57)
         light_pose[:3, 3] = np.array([0, 1, 1])
-        scene.add(light, pose=light_pose)
+        self.scene.add(light, pose=light_pose)
 
         # light_pose[:3, 3] = np.array([1, 1, 2])
         # scene.add(light, pose=light_pose)
+        self.load_scene_time.update(time.time() - st)
 
-        color, rend_depth = self.renderer.render(scene, flags=pyrender.RenderFlags.RGBA)
+        st = time.time()
+        # color, rend_depth = self.renderer.render(scene, flags=pyrender.RenderFlags.RGBA)
+        color, rend_depth = self.renderer.render(self.scene, flags=pyrender.RenderFlags.SKIP_CULL_FACES)
         color = color.astype(np.float32) / 255.0
         valid_mask = (rend_depth > 0)[:,:,None]
         if image is not None:
@@ -73,14 +126,19 @@ class Renderer(Scene3D):
         
         if joints is not None:
             output_img = self.render_joints(joints, camera_translation, camera_angles, output_img)
+        self.render_time.update(time.time() - st)
 
         return output_img
 
-    def render_joints(self, joints, camera_translation, camera_angles, image):
-        joints2d = self.project_joints(joints, camera_translation, camera_angles)
-        imageOverlay = image.copy()
-        for ikpt in range(joints2d.shape[0]):
-            kptInt = (int(joints2d[ikpt][0]), int(joints2d[ikpt][1]))
-            cv2.circle(imageOverlay, kptInt, radius=2, color=(0,0,255), thickness=3)
+    def __call__(self, vertices, camera_translation, camera_angles=[0., 0., 0.], image=None, joints=None):
+        self.load_mesh(vertices)
+        return self.render_mesh(camera_translation, camera_angles, image, joints)
 
-        return imageOverlay
+    # def render_joints(self, joints, camera_translation, camera_angles, image):
+    #     joints2d = self.project_joints(joints, camera_translation, camera_angles)
+    #     imageOverlay = image.copy()
+    #     for ikpt in range(joints2d.shape[0]):
+    #         kptInt = (int(joints2d[ikpt][0]), int(joints2d[ikpt][1]))
+    #         cv2.circle(imageOverlay, kptInt, radius=2, color=(0,0,255), thickness=3)
+
+    #     return imageOverlay

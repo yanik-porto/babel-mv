@@ -13,11 +13,14 @@ class AnimationRendererPyrender(AnimationRendererJoints2D):
         super(AnimationRendererPyrender, self).__init__(convention, skip_existing, strict_label, n_classes, only_some_actions)
 
     def render_animation_in_cameras(self, cams, animation_filename, animation_folder):
+        return self.render_animation_in_cameras_simultaneously(cams, animation_filename, animation_folder)
+
         # TODO : list all cameras in the scene
         for cam in cams:
             self.render_animation_in_camera(cam, animation_filename, animation_folder)
 
-    def render_animation_in_camera(self, camera_name, animation_filename, animation_folder):        
+    def render_animation_in_camera(self, camera_name, animation_filename, animation_folder):
+       
         an_f_noext, _ = os.path.splitext(animation_filename)
         out_folder = os.path.join(animation_folder, an_f_noext)
         os.makedirs(out_folder, exist_ok=True)
@@ -31,38 +34,163 @@ class AnimationRendererPyrender(AnimationRendererJoints2D):
             print(render_file_path, " already exists")
             return
         
-        self.load_animation(os.path.join(animation_folder, animation_filename))
-        
+        st = time.time()
+        all_joints, all_verts = self.load_animation(os.path.join(animation_folder, animation_filename))
+        animation_loading_time = time.time() - st
+
         video=cv2.VideoWriter(render_file_path, cv2.VideoWriter_fourcc(*'DIVX'), 30, (1920,1080))
+        # video=cv2.VideoWriter(out_file, cv2.VideoWriter_fourcc(*'DIVX'), 30, (640,480))
 
         keypoints = []
 
-        render_time = AverageMeter()
+        assert(camera_name in self.cameras)
+        camera_translation = self.cameras[camera_name][0]
+        camera_angles = self.cameras[camera_name][1]
 
-        batch = range(self.poses.shape[0])
-        torch.no_grad()
-        for ib in batch:
+        render_time = AverageMeter()
+        writer_time = AverageMeter()
+
+        # batch = range(self.poses.shape[0])
+        # torch.no_grad()
+        for ib, _ in enumerate(all_verts):
             st = time.time()
 
-            joints, verts = self.joints_from_pose(ib)
+            joints, verts = all_joints[ib], all_verts[ib]
+            # joints, verts = self.joints_from_pose(ib)
                 
-            render_time.update(time.time() - st)
 
-            assert(camera_name in self.cameras)
-            camera_translation = self.cameras[camera_name][0]
-            camera_angles = self.cameras[camera_name][1]
-            img_rendered = self.renderer(verts[0].detach().cpu().numpy(), camera_translation, camera_angles)#, joints=joints[0].detach().cpu().numpy())
+            # camera_translation = [-2.,     0.,      10.]
+            # camera_angles = [0, 0, 180]
+
+            # camera_translation = [-2.,     2.,      10.]
+            # camera_angles = [2, 5, 90]
+
+            # camera_angles = [0, 0, 180]
+            # camera_translation = [0.,     2.,      10.]
+            # camera_angles = [5, 0, 45]
+            # camera_rotation = trimesh.transformations.rotation_matrix(
+            #     np.radians(camera_angles[2]), [0, 0, 1])
+            # camera_rotation = camera_rotation @ trimesh.transformations.rotation_matrix(
+            #     np.radians(camera_angles[1]), [0, 1, 0])
+            # camera_rotation = camera_rotation @ trimesh.transformations.rotation_matrix(
+            #     np.radians(camera_angles[0]), [1, 0, 0])
+            # camera_translation = [0.,     0.,      40.]
+
+            # print(verts.shape)
+            # print(joints.shape)
+            img_rendered = self.renderer(verts, camera_translation, camera_angles)#, joints=joints[0].detach().cpu().numpy())
+            render_time.update(time.time() - st)
+            st = time.time()
             img_rendered *= 255 # or any coefficient
             img_rendered = img_rendered.astype(np.uint8)
             video.write(img_rendered[:, :, :3])
+            writer_time.update(time.time() - st)
 
             if False:
                 cv2.imshow("smplx", img_rendered)
                 cv2.waitKey(10)
 
-            keypoints.append(self.renderer.project_joints(joints[0].detach().cpu().numpy(), camera_translation, camera_angles))
+            keypoints.append(self.renderer.project_joints(joints, camera_translation, camera_angles))
 
         video.release()
         np.savez(os.path.join(out_folder, stdname + '_0_gt.npz'), keypoint=keypoints)
 
-        print("avg time render : {est_time.avg:.3f}\t".format(est_time=render_time))
+        print("total time loading : {est_time:.3f}\t sec".format(est_time=animation_loading_time))
+        print("avg time render : {est_time.avg:.3f}\t sec".format(est_time=render_time))
+        print("avg time writer : {est_time.avg:.3f}\t sec".format(est_time=writer_time))
+        print("total time render : {est_time.sum:.3f}\t sec".format(est_time=render_time))
+        print("total time writer : {est_time.sum:.3f}\t sec".format(est_time=writer_time))
+
+        print("avg time loading mesh only : {est_time.avg:.3f}\t sec".format(est_time=self.renderer.load_mesh_time))
+        print("avg time loading scene only : {est_time.avg:.3f}\t sec".format(est_time=self.renderer.load_scene_time))
+        print("avg time rendering only : {est_time.avg:.3f}\t sec".format(est_time=self.renderer.render_time))
+
+
+    def render_animation_in_cameras_simultaneously(self, cams, animation_filename, animation_folder):
+        an_f_noext, _ = os.path.splitext(animation_filename)
+        out_folder = os.path.join(animation_folder, an_f_noext)
+        os.makedirs(out_folder, exist_ok=True)
+
+        st = time.time()
+        all_joints, all_verts = self.load_animation(os.path.join(animation_folder, animation_filename))
+        animation_loading_time = time.time() - st
+
+        
+        vrws = {}
+
+        for camera_name in cams:
+            stdname = self.babel_to_stdname(an_f_noext, camera_name)
+            if stdname == "":
+                print("Action is not in the list for animation ", animation_filename)
+                return
+            vrw = VideoRenderingWriter(stdname, out_folder, self.skip_existing)
+            if not vrw.initialized:
+                print("No VideoRenderingWriter for animation ", animation_filename)
+                return
+
+            vrws[camera_name] = vrw
+
+        for ib, _ in enumerate(all_verts):
+
+            joints, verts = all_joints[ib], all_verts[ib]
+
+            self.renderer.load_mesh(verts)
+
+            render_time = AverageMeter()
+            writer_time = AverageMeter()
+
+            for camera_name in cams:
+                assert camera_name in self.cameras, camera_name + " vs " + str(self.cameras)
+                camera_translation = self.cameras[camera_name][0]
+                camera_angles = self.cameras[camera_name][1]
+
+                st = time.time()
+                img_rendered = self.renderer.render_mesh(camera_translation, camera_angles)
+                render_time.update(time.time() - st)
+
+                st = time.time()
+                img_rendered *= 255 # or any coefficient
+                img_rendered = img_rendered.astype(np.uint8)
+                vrws[camera_name].write(img_rendered)
+                writer_time.update(time.time() - st)
+
+                vrws[camera_name].add_keypoints(self.renderer.project_joints(joints, camera_translation, camera_angles))
+
+        for vrw in vrws.values():
+            vrw.close()
+
+        print("total time loading : {est_time:.3f}\t sec".format(est_time=animation_loading_time))
+        print("avg time render : {est_time.avg:.3f}\t sec".format(est_time=render_time))
+        print("avg time writer : {est_time.avg:.3f}\t sec".format(est_time=writer_time))
+        print("total time render : {est_time.sum:.3f}\t sec".format(est_time=render_time))
+        print("total time writer : {est_time.sum:.3f}\t sec".format(est_time=writer_time))
+
+        print("avg time loading mesh only : {est_time.avg:.3f}\t sec".format(est_time=self.renderer.load_mesh_time))
+        print("avg time loading scene only : {est_time.avg:.3f}\t sec".format(est_time=self.renderer.load_scene_time))
+        print("avg time rendering only : {est_time.avg:.3f}\t sec".format(est_time=self.renderer.render_time))
+
+
+class VideoRenderingWriter():
+    def __init__(self, stdname, out_folder, skip_existing):
+        render_file_path = os.path.join(out_folder, stdname + '.avi')
+        if os.path.exists(render_file_path) and skip_existing:
+            print(render_file_path, " already exists")
+            self.initialized = False
+            return
+        
+        self.video=cv2.VideoWriter(render_file_path, cv2.VideoWriter_fourcc(*'DIVX'), 30, (1920,1080))
+        self.keypoints = []
+        self.kpts_path = os.path.join(out_folder, stdname + '_0_gt.npz')
+
+        self.initialized = True
+
+    def write(self, img_rendered):
+        self.video.write(img_rendered[:, :, :3])
+
+    def add_keypoints(self, kpts):
+        self.keypoints.append(kpts)
+
+    def close(self):
+        self.video.release()
+        np.savez(self.kpts_path, keypoint=self.keypoints)
+        

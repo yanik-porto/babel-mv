@@ -103,6 +103,13 @@ class Visualization(object):
             # self.viewer.update_geometry(mesh_gt)
             # time.sleep(1)
             self.viewer.poll_events()
+        return point_cloud
+
+    def update_point_cloud(self, point_cloud, new_points):
+        self.viewer.update_geometry(point_cloud)
+        point_cloud.points = o3d.utility.Vector3dVector(new_points)
+        self.viewer.poll_events()
+
             
     def visualize_lines(self, points, filted):
         point_cloud1 = o3d.geometry.PointCloud()
