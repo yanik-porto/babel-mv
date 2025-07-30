@@ -1,8 +1,10 @@
 import argparse
 import os
+from os.path import join as ospj
 import glob
 import shutil
 from tqdm import tqdm
+import json
 
 subset = [15, 16, 21, 23, 26, 30, 31, 37, 52, 62, 64]
 
@@ -17,11 +19,26 @@ def parse_args():
     return parser.parse_args()
 
 def get_action_from_path(filepath, action_position=-1):
-    mnoext, _ = os.path.splitext(m)
+    mnoext, _ = os.path.splitext(filepath)
     words = os.path.basename(mnoext).split('_')
     action_str = words[action_position]
     action_id = int(action_str[1:]) - 1
     return action_id
+
+def get_action_from_path_str(filepath, action_position=-1):
+    mnoext, _ = os.path.splitext(filepath)
+    words = os.path.basename(mnoext).split('_')
+    assert len(words) == 3, words
+    action_str = words[action_position]
+    if not action_str in labels_2_idx:
+        if action_str != 'transition':
+            print("\'", action_str, "\' not present in action list")
+        return -1
+    action_id = labels_2_idx[action_str]
+    return action_id
+
+with open(ospj("renderer", "action_label_2_idx.json")) as infile:
+    labels_2_idx = json.load(infile)
 
 if __name__ == '__main__':
 
@@ -41,10 +58,8 @@ if __name__ == '__main__':
                 elif suf == "*/*.npz":
                     action_id = get_action_from_path(m, -2)
                 elif suf == "*.npz":
-                    print("not implemented yet!")
-                    continue
+                    action_id = get_action_from_path_str(m, -1)
 
-                if action_id not in subset:
                     continue
 
             dst = m.replace(args.src, args.dst)
