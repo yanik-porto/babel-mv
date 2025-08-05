@@ -26,23 +26,51 @@ class Renderer(Scene3D):
         self.load_mesh_time = AverageMeter()
         self.load_scene_time = AverageMeter()
         self.render_time = AverageMeter()
+        self.camerapose_time = AverageMeter()
 
-    def load_mesh(self, vertices):
         st = time.time()
-
-        material = pyrender.MetallicRoughnessMaterial(
+        self.camera_node = None
+        self.mesh_node = None
+        self.scene = pyrender.Scene(ambient_light=(0.2, 0.2, 0.2))
+        self.material = pyrender.MetallicRoughnessMaterial(
             metallicFactor=0.2,
             alphaMode='OPAQUE',
             baseColorFactor=(0.5, 0.3, 0.7, 1.0))
 
+        light = pyrender.DirectionalLight(color=[1.0, 1.0, 1.0], intensity=1)
+        # light_pose = np.eye(4)
+        light_pose = rotation_3d_x(1.57)
+        light_pose[:3, 3] = np.array([0, -1, 1])
+        self.scene.add(light, pose=light_pose)
+
+        light_pose = rotation_3d_x(-1.57)
+        light_pose[:3, 3] = np.array([0, 1, 1])
+        self.scene.add(light, pose=light_pose)
+
+        # light_pose[:3, 3] = np.array([1, 1, 2])
+        # scene.add(light, pose=light_pose)
+        self.load_scene_time.update(time.time() - st)
+
+    def reset_time(self):
+        self.load_mesh_time.reset()
+        self.load_scene_time.reset()
+        self.render_time.reset()
+        self.camerapose_time.reset()
+
+    def load_mesh(self, vertices):
+
+        st = time.time()
+
         mesh = trimesh.Trimesh(vertices, self.faces)
-        mesh = pyrender.Mesh.from_trimesh(mesh, material=material)
-        self.scene = pyrender.Scene(ambient_light=(0.2, 0.2, 0.2))
-        self.scene.add(mesh, 'mesh')
+        mesh = pyrender.Mesh.from_trimesh(mesh, material=self.material)
+        
+        if self.mesh_node is not None:
+            self.scene.remove_node(self.mesh_node)
+        self.mesh_node = self.scene.add(mesh, 'mesh')
 
         self.load_mesh_time.update(time.time() - st)
 
-    def render_mesh(self, camera_translation, camera_angles=[0., 0., 0.], image=None, joints=None):
+    def render_mesh(self, camera_pose, image=None, joints=None):
         # st = time.time()
 
         # material = pyrender.MetallicRoughnessMaterial(
@@ -82,16 +110,18 @@ class Renderer(Scene3D):
         # scene = pyrender.Scene(ambient_light=(0.2, 0.2, 0.2))
         # scene.add(mesh, 'mesh')
 
-        st = time.time()
         # build camera transformation matrix
         # camera_pose = self.camera_pose([-camera_translation[0], camera_translation[1], camera_translation[2]], [camera_angles[0], -camera_angles[1], -camera_angles[2]], inverse=True)
-        camera_pose = self.camera_pose(camera_translation, camera_angles, inverse=False)
-        if self.scene.has_node('camera'):
-            self.scene.get_node(name='camera').matrix = camera_pose
+        
+        st = time.time()
+        # camera_pose = self.camera_pose(camera_translation, camera_angles, inverse=False)
+        if self.camera_node is not None:
+            self.scene.set_pose(self.camera_node, pose=camera_pose)
         else:
             camera = pyrender.IntrinsicsCamera(fx=self.focal_length, fy=self.focal_length,
                                             cx=self.camera_center[0], cy=self.camera_center[1])
-            self.scene.add(camera, pose=camera_pose)
+            self.camera_node = self.scene.add(camera, pose=camera_pose, name='camera')
+        self.camerapose_time.update(time.time() - st)
 
         # V, P = self.renderer._renderer._get_camera_matrices(scene)
         # print(V)
@@ -99,19 +129,6 @@ class Renderer(Scene3D):
 
         # pyrender.Viewer(scene, viewport_size=(1000, 1000))
 
-        light = pyrender.DirectionalLight(color=[1.0, 1.0, 1.0], intensity=1)
-        # light_pose = np.eye(4)
-        light_pose = rotation_3d_x(1.57)
-        light_pose[:3, 3] = np.array([0, -1, 1])
-        self.scene.add(light, pose=light_pose)
-
-        light_pose = rotation_3d_x(-1.57)
-        light_pose[:3, 3] = np.array([0, 1, 1])
-        self.scene.add(light, pose=light_pose)
-
-        # light_pose[:3, 3] = np.array([1, 1, 2])
-        # scene.add(light, pose=light_pose)
-        self.load_scene_time.update(time.time() - st)
 
         st = time.time()
         # color, rend_depth = self.renderer.render(scene, flags=pyrender.RenderFlags.RGBA)
@@ -124,15 +141,16 @@ class Renderer(Scene3D):
         else:
             output_img = color
         
-        if joints is not None:
-            output_img = self.render_joints(joints, camera_translation, camera_angles, output_img)
+        # if joints is not None:
+        #     output_img = self.render_joints(joints, camera_translation, camera_angles, output_img)
         self.render_time.update(time.time() - st)
 
         return output_img
 
     def __call__(self, vertices, camera_translation, camera_angles=[0., 0., 0.], image=None, joints=None):
         self.load_mesh(vertices)
-        return self.render_mesh(camera_translation, camera_angles, image, joints)
+        camera_pose = self.camera_pose(camera_translation, camera_angles, inverse=False)
+        return self.render_mesh(camera_pose, image, joints)
 
     # def render_joints(self, joints, camera_translation, camera_angles, image):
     #     joints2d = self.project_joints(joints, camera_translation, camera_angles)

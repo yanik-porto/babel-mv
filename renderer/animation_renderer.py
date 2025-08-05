@@ -4,6 +4,7 @@ import json
 import os
 from os.path import join as ospj
 from os.path import dirname as ospd
+from tools.scene3d import camera_pose
 
 class AnimationRenderer(ABC):
     def __init__(self, skip_existing = False, strict_label = False, n_classes = 120, only_some_actions = False):
@@ -24,6 +25,10 @@ class AnimationRenderer(ABC):
         self.cameras["Camera1"] = ((7.35889, -6.92579, 4.95831), (63.5593, 0, 46.6919))
         self.cameras["Camera2"] = ((7.58162, 7.0136, 4.95831), (63.5593, 0, 130.047))
         self.cameras["Camera3"] = ((-6.40549, 7.0136, 4.95831), (63.5593, 0, 223.362))
+
+        self.camera_poses = {}
+        for key, val in self.cameras.items():
+            self.camera_poses[key] = camera_pose(val[0], val[1], inverse=False)
 
     def get_classidx_from_filename(self, filename):
         splits = filename.split("_")
@@ -82,6 +87,7 @@ class AnimationRenderer(ABC):
             print("Skipped animation rendering because class index is out of range : {}".format(classidx))
             return
 
+        print("********************")
         print("Render animation {}".format(animation_filename))
 
         self.render_animation_in_cameras(cams, animation_filename, animation_folder)

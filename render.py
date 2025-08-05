@@ -2,6 +2,7 @@ import argparse
 import os
 from renderer import *
 from tqdm import tqdm
+import time
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Create babel-mv dataset")
@@ -16,9 +17,13 @@ if __name__ == "__main__":
 
     renderer = create_renderer(args.method.lower(), args.convention, skip_existing=args.skip_existing)
 
+    st = time.perf_counter()
+
     for root, _, files in os.walk(args.meshes_path):
         if root != args.meshes_path:
             continue
         for f in tqdm(files):
             if f.endswith('.npz'):
                 renderer.render_animation(root, f, ["Camera1", "Camera2", "Camera3"])
+
+    print("total rendering time : ", (time.perf_counter() - st) / 60., " min")

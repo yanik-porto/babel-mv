@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import time
 from tools.utils import AverageMeter
+import time
 
 class AnimationRendererJoints3D(AnimationRenderer):
     def __init__(self, convention='LSP', skip_existing = False, strict_label = False, n_classes = 120, only_some_actions = False):
@@ -12,6 +13,7 @@ class AnimationRendererJoints3D(AnimationRenderer):
         assert(convention in ['LSP', 'COCO'])
         self.convention = convention
 
+        st = time.time()
         self.bm = None
         if self.convention == 'LSP':
             self.bm = SMPLX('/home/yanik/Documents/models/smplx/models_smplx_v1_1/models/smplx/SMPLX_NEUTRAL.pkl',
@@ -26,6 +28,8 @@ class AnimationRendererJoints3D(AnimationRenderer):
             self.bm = SMPL('/home/yanik/Documents/models/smpl/SMPL_NEUTRAL.pkl',
                             batch_size=1,
                             create_transl=False).cuda()
+            
+        print("total init smpl : ", time.time() - st, " sec")
 
     def load_animation(self, animation_path):
         if animation_path == self.animation_loaded:
