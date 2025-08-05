@@ -74,6 +74,7 @@ def parse_args():
     parser.add_argument('--closest_node', action='store_true', help="rotate the hips to the closest yaw node")
     parser.add_argument('--yaw', type=int, default=0, help='yaw rotation of the body in the first frame')
     parser.add_argument('--inverse_axes', action="store_true", help="Inverse the squeleton axes to be z up")
+    parser.add_argument('--camera', default='Camera1', help="Name of the camera to project on")
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -97,7 +98,7 @@ if __name__ == '__main__':
 
     renderer = AnimationRendererJoints3D()
     cameras = renderer.cameras
-    cam = cameras["Camera1"]
+    cam = cameras[args.camera]
     camera_translation = cam[0]
     camera_angles = cam[1]
 

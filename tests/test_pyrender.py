@@ -18,6 +18,7 @@ def parse_args():
     parser.add_argument('--yaw', type=int, default=0, help='yaw rotation of the body in the first frame')
     parser.add_argument('--inverse_axes', action="store_true", help="Inverse the squeleton axes to be z up")
     parser.add_argument('--xz_to_xy', action='store_true', help="rotate the squeleton sequence so that it lies on the xy plan")
+    parser.add_argument('--camera', default='Camera1', help="Name of the camera to project on")
     return parser.parse_args()
 
 
@@ -51,7 +52,7 @@ if __name__ == '__main__':
     scene.add(light, pose=light_pose)
 
     scene3d = Scene3D(viewport_width=width, viewport_height=height)
-    cam = renderer.cameras["Camera2"]
+    cam = renderer.cameras[args.camera]
     camera_translation = cam[0]
     camera_angles = cam[1]
     campose = camera_pose(camera_translation, camera_angles, inverse=False)
