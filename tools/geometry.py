@@ -59,26 +59,28 @@ def vector_mesh_intersection(vector_start, vector_end, mesh_vertices, mesh_faces
 
     return False
 
-def create_realistic_mask(joints, cam_trans):
+def create_realistic_mask(vertices, cam_trans):
     rshould = 6
     lshould = 5
     rhip = 12
     lhip = 11
     body_joints = (6, 5, 12, 11)
 
-    for jp, joints_person in enumerate(joints):
-        for jf, joints_frame in enumerate(joints_person):
-            vertices = joints_frame
-            faces = ((rshould, lshould, lhip), (lhip, rhip, rshould))
+    faces = ((rshould, lshould, lhip), (lhip, rhip, rshould))
 
-            mask = np.ones(joints_frame.shape, dtype=joints_frame.dtype)
-            for j in range(len(joints_frame)):
-                if j in body_joints:
-                    continue
-                intersect = vector_mesh_intersection(cam_trans, joints_frame[j], vertices, faces)
-                if intersect:
-                    print(f"{j}th joint is occluded")
-                mask[j] = float(not intersect)
+    mask = np.ones(vertices.shape, dtype=vertices.dtype)
+    for j in range(len(vertices)):
+        if j in body_joints:
+            continue
+        intersect = vector_mesh_intersection(cam_trans, vertices[j], vertices, faces)
+        if intersect:
+            print(f"{j}th joint is occluded")
+        mask[j] = float(not intersect)
+
+    vertices = vertices * mask
+
+    return vertices
+
 
             joints[jp, jf] = joints_frame * mask
 
