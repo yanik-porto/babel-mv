@@ -1,5 +1,9 @@
 import numpy as np
 import math
+import torch
+from .geom.quaternion import *
+from .geom.tgm_conversion import *
+
 def vector_mesh_intersection(vector_start, vector_end, mesh_vertices, mesh_faces):
     """https://en.wikipedia.org/wiki/Line%E2%80%93plane_intersection
     Checks if a vector defined by a start and end point intersects with a 3D mesh.
@@ -81,7 +85,18 @@ def create_realistic_mask(vertices, cam_trans):
 
     return vertices
 
+def get_unit_vector(p1, p2):
+    dx = p2[0] - p1[0]
+    dy = p2[1] - p1[1]
+    magnitude = math.sqrt(dx**2 + dy**2)
+    if magnitude == 0:
+        return (0, 0)  # Handle zero-length vector
 
-            joints[jp, jf] = joints_frame * mask
+    return dx / magnitude, dy / magnitude
 
-    return joints
+def xz_to_xy_ground_plane(global_orient):
+    quat = angle_axis_to_quaternion(global_orient)
+    rotquat = torch.tensor([math.sqrt(2)/2, math.sqrt(2)/2, 0, 0])
+    global_orient = qmul(quat, rotquat)
+    global_orient = quaternion_to_angle_axis(global_orient)
+    return global_orient
