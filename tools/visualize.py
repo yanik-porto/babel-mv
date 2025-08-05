@@ -11,6 +11,7 @@ def parse_args():
     parser.add_argument('--save', action='store_true', default=False, help="save output to file")
     parser.add_argument('--from_single_file', required=False, default=None, help='single file containing the poses for all videos')
     parser.add_argument('--estim_id', type=int, default=0, required=False, help="id of the estimated pose")
+    parser.add_argument('--load_gt', action='store_true', default=False, help="load and display gt on image")
     return parser.parse_args()
 
 def add_keypoints(image, keypoints, color):
@@ -56,7 +57,7 @@ if __name__ == '__main__':
             # load gt pose
             gt = None
             gt_path = vidnoext + '_' + str(args.estim_id) + '_gt.npz'
-            if os.path.exists(gt_path):
+            if args.load_gt and os.path.exists(gt_path):
                 gt = dict(np.load(gt_path))
                 print(gt['keypoint'].shape)
 
