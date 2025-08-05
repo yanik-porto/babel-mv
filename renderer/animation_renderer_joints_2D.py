@@ -10,9 +10,18 @@ class AnimationRendererJoints2D(AnimationRendererJoints3D):
     def __init__(self, convention='LSP', skip_existing = False, strict_label = False, n_classes = 120, only_some_actions = False):
         super(AnimationRendererJoints2D, self).__init__(convention, skip_existing, strict_label, n_classes, only_some_actions)
 
-        focal_length_mm = 50
+        focal_length_mm = 70
+        self.image_width = 640
+        self.image_height = 480
 
-        self.renderer = Renderer(focal_length_mm=focal_length_mm, viewport_width=1920, viewport_height=1080, faces=self.bm.faces)
+        # focal_length_mm = 50
+        # self.image_width = 1920
+        # self.image_height = 1080
+
+        st = time.time()
+        # self.renderer = Renderer(focal_length_mm=focal_length_mm, viewport_width=1920, viewport_height=1080, faces=self.bm.faces)
+        self.renderer = Renderer(focal_length_mm=focal_length_mm, viewport_width=self.image_width, viewport_height=self.image_height, faces=self.bm.faces)
+        print("total init renderer : ", time.time() - st, " sec")
 
     def render_animation_in_camera(self, camera_name, animation_filename, animation_folder):        
         an_f_noext, _ = os.path.splitext(animation_filename)
