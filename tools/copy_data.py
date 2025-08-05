@@ -60,6 +60,7 @@ if __name__ == '__main__':
                 elif suf == "*.npz":
                     action_id = get_action_from_path_str(m, -1)
 
+                if action_id not in subset:
                     continue
 
             dst = m.replace(args.src, args.dst)
