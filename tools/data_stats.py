@@ -7,7 +7,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Display statistics on the database")
     parser.add_argument("poses_path", type=str, help="Path to the file containing the poses")
     parser.add_argument("--babel_path", type=str, default=None, help="Path to the babel dataset with split files, if comparison is needed")
-    parser.add_argument("--labels_path", type=str, default='toots/babel.txt', help="Path to the list of labels")
+    parser.add_argument("--labels_path", type=str, default='tools/babel.txt', help="Path to the list of labels")
     return parser.parse_args()
 
 def compute_babel_split_statistics(babel_split):
