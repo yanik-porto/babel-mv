@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     width = 640
     height = 480
-    scene3d = Scene3D(viewport_width=width, viewport_height=height)
+    scene3d = Scene3D(img_res=width, img_res_height=height)
     data = np.load(args.seq_path)
     if args.seq_path.endswith('.npz'):
         data = dict(data)

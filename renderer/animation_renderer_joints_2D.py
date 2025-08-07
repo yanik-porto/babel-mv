@@ -20,7 +20,7 @@ class AnimationRendererJoints2D(AnimationRendererJoints3D):
 
         st = time.time()
         # self.renderer = Renderer(focal_length_mm=focal_length_mm, viewport_width=1920, viewport_height=1080, faces=self.bm.faces)
-        self.renderer = Renderer(focal_length_mm=focal_length_mm, viewport_width=self.image_width, viewport_height=self.image_height, faces=self.bm.faces)
+        self.renderer = Renderer(focal_length_mm=focal_length_mm, img_res=self.image_width, img_res_height=self.image_height, faces=self.bm.faces)
         print("total init renderer : ", time.time() - st, " sec")
 
     def render_animation_in_camera(self, camera_name, animation_filename, animation_folder):        
