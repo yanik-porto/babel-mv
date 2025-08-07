@@ -37,7 +37,7 @@ def compute_camera_rotation(translation):
 
     return x_angle, y_angle, z_angle
 
-def camera_pose(camera_translation, camera_angles, inverse=False, right2left=False):    
+def camera_pose(camera_translation, camera_angles, inverse=False, right2left=False):
     camera_rotation = rotation_3d_z(np.radians(camera_angles[2]))
     camera_rotation = camera_rotation @ rotation_3d_y(np.radians(camera_angles[1]))
     camera_rotation = camera_rotation @ rotation_3d_x(np.radians(camera_angles[0]))
@@ -118,12 +118,3 @@ class Scene3D:
         joints2d = P @ jHomo
         joints2d[:, :] /= joints2d[2, :]
         return joints2d[:2, :].transpose()
-    
-    # def render_joints(self, joints, camera_translation, camera_angles, image):
-    #     joints2d = self.project_joints(joints, camera_translation, camera_angles)
-    #     imageOverlay = image.copy()
-    #     for ikpt in range(joints2d.shape[0]):
-    #         kptInt = (int(joints2d[ikpt][0]), int(joints2d[ikpt][1]))
-    #         cv2.circle(imageOverlay, kptInt, radius=2, color=(0,0,255), thickness=3)
-
-    #     return imageOverlay

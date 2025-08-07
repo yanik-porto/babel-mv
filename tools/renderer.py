@@ -11,6 +11,7 @@ from copy import deepcopy
 from .matrix import *
 from .scene3d import Scene3D
 from .utils import AverageMeter
+from .viz_utils import create_cube_mesh
 
 
 class Renderer(Scene3D):
@@ -33,11 +34,16 @@ class Renderer(Scene3D):
         st = time.time()
         self.camera_node = None
         self.mesh_node = None
+        self.joints_nodes = []
         self.scene = pyrender.Scene(ambient_light=(0.2, 0.2, 0.2))
         self.material = pyrender.MetallicRoughnessMaterial(
             metallicFactor=0.2,
             alphaMode='OPAQUE',
             baseColorFactor=(0.5, 0.3, 0.7, 1.0))
+        self.material_joints = pyrender.MetallicRoughnessMaterial(
+            metallicFactor=0.2,
+            alphaMode='OPAQUE',
+            baseColorFactor=(0.2, 0.3, 0.8, 1.0))
 
         light = pyrender.DirectionalLight(color=[1.0, 1.0, 1.0], intensity=1)
         # light_pose = np.eye(4)
@@ -92,7 +98,7 @@ class Renderer(Scene3D):
 
         self.load_mesh_time.update(time.time() - st)
 
-    def render_mesh(self, camera_pose, image=None, joints=None, add_specific_light=False):
+    def render_mesh(self, camera_pose, image=None, add_specific_light=False):
        
         st = time.time()
         if self.camera_node is not None:
@@ -117,20 +123,38 @@ class Renderer(Scene3D):
         else:
             output_img = color
         
-
-        # if joints is not None:
-        #     output_img = self.render_joints(joints, camera_translation, camera_angles, output_img)
         self.render_time.update(time.time() - st)
 
         return output_img
 
     def __call__(self, vertices, camera_translation, camera_angles=[0., 0., 0.], image=None, joints=None, from_left_hand=False):
         self.load_mesh(vertices, from_left_hand)
+        if joints is not None:
+            self.load_joints(joints, from_left_hand)
         if from_left_hand:
-            cam_trans = deepcopy(camera_translation)
-            cam_trans[0] *= -1.
-        camera_pose = self.camera_pose(cam_trans, camera_angles, inverse=False)
-        return self.render_mesh(camera_pose, image, joints)
+            camera_translation = deepcopy(camera_translation)
+            camera_translation[0] *= -1.
+        camera_pose = self.camera_pose(camera_translation, camera_angles, inverse=False)
+        return self.render_mesh(camera_pose, image)
+
+    def load_joints(self, joints, from_left_hand=False):
+
+        if from_left_hand:
+            rot = rotation_3d_x(np.radians(180))
+            jHomo = np.concatenate((joints, np.ones((joints.shape[0], 1))), axis=1).transpose()
+            jRotated = rot @ jHomo
+            joints = jRotated.transpose()[:, :3]
+
+        # remove previous joints
+        if len(self.joints_nodes) > 0:
+            for node in self.joints_nodes:
+                self.scene.remove_node(node)
+            self.joints_nodes = []
+        # add new joints to the scene
+        for i, joint in enumerate(joints):
+            mesh = create_cube_mesh(joint)
+            mesh = pyrender.Mesh.from_trimesh(mesh, self.material_joints)
+            self.scene.add(mesh, 'joint_' + str(i))
 
 def get_light_poses(n_lights=5, elevation=np.pi / 3, dist=12):
     # get lights in a circle around origin at elevation
