@@ -84,17 +84,22 @@ def sampled_camera_poses(step_degree = 30):
     return cams
 
 class Scene3D:
-    def __init__(self, focal_length_mm=50, viewport_width=224, viewport_height=224):
-        sensor_width = 36
+    def __init__(self, focal_length_mm=50, img_res=224, img_res_height=None, sensor_width=36):
+        self.viewport_height = img_res if img_res_height is None else img_res_height
+        self.viewport_width = img_res
         self.focal_length_mm = focal_length_mm
-        self.focal_length = focal_length_mm / sensor_width * viewport_width
-        self.camera_center = [viewport_width // 2, viewport_height // 2]
+        self.focal_length = focal_length_mm / sensor_width * self.viewport_width
+        self.camera_center = [self.viewport_width // 2, self.viewport_height // 2]
 
     def camera_pose(self, camera_translation, camera_angles, inverse=False, right2left=False):
         return camera_pose(camera_translation, camera_angles, inverse, right2left)
 
-    def project_joints(self, joints, camera_translation, camera_angles):
-        camera_pose = self.camera_pose([-camera_translation[0], camera_translation[1], camera_translation[2]], [camera_angles[0], -camera_angles[1], -camera_angles[2]], inverse=True)
+    def project_joints(self, joints, camera_translation, camera_angles=[0, 0, 0]):
+        if camera_angles == [0, 0, 0]:
+            camera_pose = np.eye(4)
+            camera_pose[:3, 3] = camera_translation
+        else:
+            camera_pose = self.camera_pose([-camera_translation[0], camera_translation[1], camera_translation[2]], [camera_angles[0], -camera_angles[1], -camera_angles[2]], inverse=True)
 
         K = np.eye(3)
         K[0][0] = self.focal_length
@@ -105,7 +110,7 @@ class Scene3D:
         Khomo = K @ np.concatenate((np.eye(3),np.zeros((3,1))), axis=1)
         P = Khomo @ camera_pose
 
-        joints[:, 0] *= -1.
+        # joints[:, 0] *= -1. # TODO : check with rendering in babel_mv, useless in live but it was for babel_mv
         # joints[:, 1] *= -1.
         # joints[:, 2] *= -1.
 
@@ -113,3 +118,12 @@ class Scene3D:
         joints2d = P @ jHomo
         joints2d[:, :] /= joints2d[2, :]
         return joints2d[:2, :].transpose()
+    
+    # def render_joints(self, joints, camera_translation, camera_angles, image):
+    #     joints2d = self.project_joints(joints, camera_translation, camera_angles)
+    #     imageOverlay = image.copy()
+    #     for ikpt in range(joints2d.shape[0]):
+    #         kptInt = (int(joints2d[ikpt][0]), int(joints2d[ikpt][1]))
+    #         cv2.circle(imageOverlay, kptInt, radius=2, color=(0,0,255), thickness=3)
+
+    #     return imageOverlay
