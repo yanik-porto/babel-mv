@@ -7,12 +7,14 @@ import torch
 import cv2
 import time
 from tools.utils import AverageMeter
-from tools.geometry import get_ori_in_cam
+from tools.geometry import get_ori_in_cam, find_closest_angle
 import math
 
 class AnimationRendererPyrender(AnimationRendererJoints2D):
     def __init__(self, convention='LSP', skip_existing = False, strict_label = False, n_classes = 120, only_some_actions = False):
         super(AnimationRendererPyrender, self).__init__(convention, skip_existing, strict_label, n_classes, only_some_actions)
+
+        self.all_oris = []
 
     def render_animation_in_cameras(self, cams, animation_filename, animation_folder):
         start = time.perf_counter()
@@ -169,10 +171,10 @@ class AnimationRendererPyrender(AnimationRendererJoints2D):
 
                 if ib == 0:
                     vrws[camera_name].define_ori(get_ori_in_cam(joints, camera_angles, convention=self.convention))
-                    print("orientation in cam : ", math.degrees(math.atan2(vrws[camera_name].ori[0], vrws[camera_name].ori[1])))
 
         for vrw in vrws.values():
             vrw.close()
+                self.all_oris.append(vrws[camera_name].closest_node)
 
         print("total time loading : {est_time:.3f}\t sec".format(est_time=animation_loading_time))
         print("avg time render : {est_time.avg:.3f}\t sec".format(est_time=render_time))
@@ -196,9 +198,12 @@ class VideoRenderingWriter():
             return
         
         self.video=cv2.VideoWriter(render_file_path, cv2.VideoWriter_fourcc(*'DIVX'), 30, image_wh)
+        self.kpts_path = os.path.join(out_folder, stdname + '_0_gt.npz')
+
         self.keypoints = []
         self.ori = (0, 1) # default orientation is front (sin(0°), cos(0°))
-        self.kpts_path = os.path.join(out_folder, stdname + '_0_gt.npz')
+        self.closest_node = 6 # 6th node in the range (-180, 180, 30)
+        self.angles_range = list(range(-180, 180, 30))
 
         self.initialized = True
 
@@ -211,7 +216,11 @@ class VideoRenderingWriter():
     def define_ori(self, ori):
         self.ori = ori
 
+        ori_deg = math.degrees(math.atan2(self.ori[0], self.ori[1]))
+        self.closest_node = find_closest_angle(ori_deg, angles_list=self.angles_range)
+
+
     def close(self):
         self.video.release()
-        np.savez(self.kpts_path, keypoint=self.keypoints, orientation=self.ori)
+        np.savez(self.kpts_path, keypoint=self.keypoints, orientation=self.ori, closest_node=self.closest_node)
         

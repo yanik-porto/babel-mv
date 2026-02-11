@@ -121,3 +121,31 @@ def get_ori_in_cam(joints_first_frame, cam_angles, convention='coco'):
     ori_in_cam = cam_z_angle - angle_hips
     ori_in_cam = np.array([math.sin(ori_in_cam), math.cos(ori_in_cam)], dtype=np.float32)
     return ori_in_cam
+
+def find_closest_angle(random_angle, angles_list):
+    """
+    Finds the closest angle from the predefined list to a given random angle.
+
+    Args:
+        random_angle: A float representing an angle in the range [-180, 150].
+
+    Returns:
+        A float representing the closest angle from the predefined list.
+    """
+    # predefined_angles = list(range(-180, 180, 30))
+    normalized_angle =  (random_angle + 180) % 360 - 180
+
+    # TODO : match -180 if closer to 180 than 150
+    if normalized_angle > 165.:
+        return -180
+
+    closest_angle = angles_list[0]
+    min_difference = abs(normalized_angle - closest_angle)
+
+    for angle in angles_list[1:]:
+        difference = abs(normalized_angle - angle)
+        if difference < min_difference:
+            min_difference = difference
+            closest_angle = angle
+
+    return closest_angle
