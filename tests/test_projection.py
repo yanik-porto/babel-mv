@@ -9,7 +9,7 @@ sys.path.insert(0, os.getcwd())
 from tools.matrix import rotation_3d_z
 from tools.scene3d import Scene3D
 from tools.visualize import add_estimation
-from tools.geometry import create_realistic_mask, get_unit_vector
+from tools.geometry import create_realistic_mask, get_unit_vector, get_hips_angle
 from renderer.animation_renderer_joints_3D import AnimationRendererJoints3D
 
 def rotate_joints(joints, rotmat):
@@ -116,16 +116,8 @@ if __name__ == '__main__':
     
     offset = 0
     if args.face_hips_front or args.closest_node:
-        convention = 'tsu'
-        if convention == 'coco':
-            hips_idx = (12, 11)
-        elif convention == 'tsu':
-            hips_idx = (4, 3)
-        lhip = joints[0, hips_idx[1]]
-        rhip = joints[0, hips_idx[0]]
-        unit_vec = get_unit_vector(rhip, lhip)
-        angle_hips = math.atan2(unit_vec[1], unit_vec[0])
-        print("angle hips : ", np.degrees(angle_hips), ' (unit :', unit_vec, ')')
+        angle_hips = get_hips_angle(joints[0], convention=args.convention)
+        print("angle hips : ", np.degrees(angle_hips))#, ' (unit :', unit_vec, ')')
         print("camera z angle : ", camera_angles[2])
 
         z_cam_angle = camera_angles[2]

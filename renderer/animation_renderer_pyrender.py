@@ -7,6 +7,8 @@ import torch
 import cv2
 import time
 from tools.utils import AverageMeter
+from tools.geometry import get_ori_in_cam
+import math
 
 class AnimationRendererPyrender(AnimationRendererJoints2D):
     def __init__(self, convention='LSP', skip_existing = False, strict_label = False, n_classes = 120, only_some_actions = False):
@@ -165,6 +167,10 @@ class AnimationRendererPyrender(AnimationRendererJoints2D):
 
                 vrws[camera_name].add_keypoints(self.renderer.project_joints(joints, camera_translation, camera_angles))
 
+                if ib == 0:
+                    vrws[camera_name].define_ori(get_ori_in_cam(joints, camera_angles, convention=self.convention))
+                    print("orientation in cam : ", math.degrees(math.atan2(vrws[camera_name].ori[0], vrws[camera_name].ori[1])))
+
         for vrw in vrws.values():
             vrw.close()
 
@@ -191,6 +197,7 @@ class VideoRenderingWriter():
         
         self.video=cv2.VideoWriter(render_file_path, cv2.VideoWriter_fourcc(*'DIVX'), 30, image_wh)
         self.keypoints = []
+        self.ori = (0, 1) # default orientation is front (sin(0°), cos(0°))
         self.kpts_path = os.path.join(out_folder, stdname + '_0_gt.npz')
 
         self.initialized = True
@@ -201,7 +208,10 @@ class VideoRenderingWriter():
     def add_keypoints(self, kpts):
         self.keypoints.append(kpts)
 
+    def define_ori(self, ori):
+        self.ori = ori
+
     def close(self):
         self.video.release()
-        np.savez(self.kpts_path, keypoint=self.keypoints)
+        np.savez(self.kpts_path, keypoint=self.keypoints, orientation=self.ori)
         

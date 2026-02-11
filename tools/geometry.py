@@ -100,3 +100,24 @@ def xz_to_xy_ground_plane(global_orient):
     global_orient = qmul(quat, rotquat)
     global_orient = quaternion_to_angle_axis(global_orient)
     return global_orient
+
+def get_hips_angle(joints_first_frame, convention='coco'):
+    convention = 'coco'
+    if convention == 'coco':
+        hips_idx = (12, 11)
+    elif convention == 'tsu':
+        hips_idx = (4, 3)
+    elif convention == 'nturgb+d':
+        hips_idx = (16, 12)
+    lhip = joints_first_frame[hips_idx[1]]
+    rhip = joints_first_frame[hips_idx[0]]
+    unit_vec = get_unit_vector(rhip, lhip)
+    angle_hips = math.atan2(unit_vec[1], unit_vec[0])
+    return angle_hips
+
+def get_ori_in_cam(joints_first_frame, cam_angles, convention='coco'):
+    angle_hips = get_hips_angle(joints_first_frame, convention=convention)
+    cam_z_angle = math.radians(cam_angles[2])
+    ori_in_cam = cam_z_angle - angle_hips
+    ori_in_cam = np.array([math.sin(ori_in_cam), math.cos(ori_in_cam)], dtype=np.float32)
+    return ori_in_cam
