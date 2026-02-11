@@ -171,10 +171,10 @@ class AnimationRendererPyrender(AnimationRendererJoints2D):
 
                 if ib == 0:
                     vrws[camera_name].define_ori(get_ori_in_cam(joints, camera_angles, convention=self.convention))
+                    self.all_oris.append(vrws[camera_name].closest_node)
 
         for vrw in vrws.values():
             vrw.close()
-                self.all_oris.append(vrws[camera_name].closest_node)
 
         print("total time loading : {est_time:.3f}\t sec".format(est_time=animation_loading_time))
         print("avg time render : {est_time.avg:.3f}\t sec".format(est_time=render_time))
